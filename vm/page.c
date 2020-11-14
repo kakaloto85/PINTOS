@@ -34,10 +34,7 @@ create_spte(void * upage, enum status state) {
     return spte;
 }
 
-// void
-// spte_update(struct spte* spte){
-//     spte->state = SWAP_DISK;
-// }
+
 struct spte* 
 get_spte(struct hash* spt,void* fault_addr){
     struct spte spte;
