@@ -1,5 +1,6 @@
 #ifndef USERPROG_SYSCALL_H
 #define USERPROG_SYSCALL_H
+#include "vm/page.h"
 #include "threads/thread.h"
 #include <stdbool.h>
 
@@ -18,5 +19,7 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 static inline void check_user_sp(const void* sp);
-
+int mmap (int fd, void *upage);
+void munmap (int mid);
+bool load_from_exec (struct spte *spte);
 #endif /* userprog/syscall.h */

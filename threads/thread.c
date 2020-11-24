@@ -573,9 +573,9 @@ init_thread (struct thread *t, const char *name, int priority)
 
   t->lock_of_holder = &lock_of_holder;
   list_init(&t->lock_list);
-
   list_init(&t->child_wait_list);
-    list_init(&t->child_exec_list);
+  list_init(&t->child_exec_list);
+  list_init(&t->mmap_list);
 
   sema_init(&(t->wait_lock), 0);        
   sema_init(&(t->load_lock), 0);        
@@ -696,6 +696,17 @@ allocate_tid (void)
 
   return tid;
 }
+
+static mapid_t
+allocate_mid (void) 
+{
+  static mapid_t next_mid = 1;
+  mapid_t mid;
+  mid = next_mid++;
+
+  return mid;
+}
+
 /*gw 추가한 코드*/
 
 //thread의 priority을 비교한다.

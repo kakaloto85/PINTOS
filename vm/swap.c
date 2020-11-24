@@ -55,7 +55,7 @@ block_sector_t swap_out (struct fte *victim) {
     return free_index;
 }
 void swap_in (block_sector_t swap_index,void* frame) {  
-    // printf("swap 2 %d\n",thread_current()->tid);
+    // printf("swap in %d\n",thread_current()->tid);
     lock_acquire(&swap_lock);
     struct fte* fte = find_frame(frame);
             // printf("upage=%d\n",fte->spte->upage);

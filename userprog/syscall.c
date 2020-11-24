@@ -4,6 +4,9 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "vm/page.h"
+#include "vm/frame.h"
+#include "vm/swap.h"
 typedef int32_t off_t;
 
 struct file 
@@ -111,6 +114,23 @@ syscall_handler (struct intr_frame *f UNUSED)
             // sema_up(&file_lock);
 
       break;                      /* Close a file. */
+    case SYS_MMAP:
+      // sema_down(&file_lock);
+
+      check_user_sp(pointer+4);
+      f->eax=mmap(*(int*)(pointer+4),*(void**)(pointer+8)); 
+            // sema_up(&file_lock);
+
+      break;                      /* Close a file. */
+    case SYS_MUNMAP:
+      // sema_down(&file_lock);
+
+      check_user_sp(pointer+4);
+      munmap(*(int*)(pointer+4)); 
+            // sema_up(&file_lock);
+
+      break;                      /* Close a file. */
+
     default:
       exit(-1);
       // break;
@@ -184,7 +204,7 @@ bool remove (const char *file){
 }
 
 int write (int fd, const void *buffer, unsigned size){
-
+  // printf("write\n");
   /* check the validity of buffer pointer */
   check_user_sp(buffer);
 
@@ -192,7 +212,7 @@ int write (int fd, const void *buffer, unsigned size){
 
   /* If buffer is valid, lock write for file synchronization */ 
   sema_down(&file_lock);
-
+  // printf("write at %s\n",cur->name);
   /* Fd 1 means standard output(ex)printf) */
 
   if(fd ==1){
@@ -221,6 +241,7 @@ int write (int fd, const void *buffer, unsigned size){
 }
 
 int read (int fd, void *buffer, unsigned size){
+  // printf("read\n");
   /* check the validity of buffer pointer */
   check_user_sp(buffer);
 
@@ -334,4 +355,125 @@ static inline void check_user_sp(const void* sp){
   //   printf("here\n");
   // }
 }
+static bool
+install_page (void *upage, void *kpage, bool writable)
+{
+  struct thread *t = thread_current ();
 
+  /* Verify that there's not already a page at that virtual
+     address, then map our page there. */
+  return (pagedir_get_page (t->pagedir, upage) == NULL
+          && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+bool load_from_exec (struct spte *spte)
+{
+    
+    uint8_t *frame = frame_alloc(PAL_USER, spte);
+    if (!frame) return false;
+    
+    if (spte->read_bytes > 0){
+      sema_down(&file_lock);
+      // file_reopen(spte->file);
+      // printf("offset %d , tide %d,frame %d\n",spte->offset,thread_current()->tid,frame);
+      if ((int) spte->read_bytes != file_read_at(spte->file, frame, spte->read_bytes, spte->offset)){
+        printf("1\n");
+
+        printf("rb %d offset %d \n",spte->read_bytes,spte->offset);
+	      // file_close(spte->file);
+        sema_up(&file_lock);
+	      free_frame(frame);
+	       
+        return false;
+      }
+      sema_up(&file_lock);
+      memset(frame + spte->read_bytes, 0, spte->zero_bytes);
+
+    }
+
+    if (!install_page(spte->upage, frame, spte->writable)) {
+        free_frame(frame);
+        // file_close(spte->file); 
+        return false;
+    }
+    // file_close(spte->file);     
+
+    // file_seek(spte->file,0);
+    spte->state = MEMORY;  
+    return true;
+}
+
+int mmap (int fd, void* upage) {
+  if(!is_user_vaddr(upage)||upage<0x08048000)
+    return -1;
+  ASSERT(fd!=0&&fd!=1);
+  if (fd>130)
+    exit(-1);
+  struct thread *cur =thread_current();
+  struct file* file = cur->fd_table[fd];
+  int filesize=file_length(file);
+  int read_bytes=filesize;
+  if(filesize<1)
+    return -1;
+  int ofs=0;
+  struct mmap_file* mmap_file = (struct mmap_file*) malloc(sizeof(struct mmap_file));
+    list_init(&mmap_file->spte_list);
+    list_push_back(&cur->mmap_list,&mmap_file->elem);
+    mmap_file->map_id=fd;
+  while (ofs<filesize) 
+    {
+      size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+      size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+      bool result=  create_spte_from_mmf(file, ofs,upage, page_read_bytes, page_zero_bytes,true,mmap_file);
+      if(!result){
+        printf("spte error at load_segment");
+      }
+      // spte->writable=writable;
+
+      ofs+= PGSIZE;
+
+      /* Advance. */
+      read_bytes -= page_read_bytes;
+      upage += PGSIZE;
+    }
+  sema_down(&file_lock);
+  struct file* new_file = file_reopen(file);
+  mmap_file->file = new_file;
+  sema_up(&file_lock);
+  if(new_file==NULL){
+    return -1;
+  }
+  return fd;
+}
+void
+munmap(int mid){
+  struct thread* cur = thread_current();
+  struct mmap_file* mmap_file;
+  struct list_elem* e;
+  for(e=list_begin(&thread_current()->mmap_list);e!=list_end(&thread_current()->mmap_list);e=list_next(e)){
+    if((mmap_file=list_entry(e,struct mmap_file,elem))->map_id==mid)
+      break;
+  }
+  struct list_elem* h;
+
+  struct spte* spte;
+  struct spte find;
+
+  for(h=list_begin(&mmap_file->spte_list);h!=list_end(&mmap_file->spte_list);h=list_next(h)){
+    spte=list_entry(h,struct spte,mmf_elem);
+    find.upage=spte->upage;
+    hash_delete (&cur->spt,&find.elem);
+    if(spte->state==MEMORY&&pagedir_is_dirty(cur->pagedir,spte->upage)){
+      sema_down(&file_lock);
+      file_write_at(mmap_file->file,spte->upage,spte->read_bytes,spte->offset);
+      sema_up(&file_lock);
+    }
+
+  }
+  sema_down(&file_lock);
+  file_close (mmap_file->file);
+  sema_up (&file_lock);
+
+  free(mmap_file);
+}

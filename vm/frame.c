@@ -17,6 +17,7 @@ frame_alloc (enum palloc_flags flags,struct spte *spte){
     lock_acquire(&frame_table_lock);
 
   void *frame = palloc_get_page(flags);
+    // printf("frame: %d",frame);
     // printf("here 1? \n");
       lock_release(&frame_table_lock);
 
@@ -58,9 +59,18 @@ find_victim (void){
   while (true) {
     
     evict = list_entry(e,struct fte, elem);
+    struct spte* evict_spte = evict->spte;
+    // if(evict_spte->file!=NULL){
+      // if(pagedir_is_dirty(evict->thread->pagedir,evict_spte->upage)){
+      //   printf("dirty\n");
+      //     file_write_at (evict_spte->file, evict_spte->upage,evict_spte->read_bytes,evict_spte->offset); 
+      // }
+    // }
+
+
     if (!pagedir_is_accessed (evict->thread->pagedir,evict->spte->upage)){
       // if(pagedir_is_dirty(evict->thread->pagedir,evict->spte->upage)){
-      //   printf("dirty\n");
+        // printf("dirty\n");
       // }
       if (list_next(e) == list_tail(&frame_table)){
         next_fte_elem = list_begin(&frame_table);

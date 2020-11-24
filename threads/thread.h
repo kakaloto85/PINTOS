@@ -15,7 +15,7 @@ enum thread_status
     THREAD_BLOCKED,     /* Waiting for an event to trigger. */
     THREAD_DYING        /* About to be destroyed. */
   };
-typedef int pid_t;
+typedef int mapid_t;
 
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
@@ -120,8 +120,10 @@ struct thread
    //For project 3-1 spt
 
 
-
+    struct file* file;
     tid_t pid;
+    mapid_t mid;
+
     struct semaphore wait_lock;
     struct semaphore load_lock;
     struct list child_wait_list;                /*jy The list of children of the parent */
@@ -129,6 +131,7 @@ struct thread
         struct list child_exec_list;                /*jy The list of children of the parent */
     struct list_elem child_exec_elem;           /*jy List element for child processes when inside parent's child_wait_list. */
 
+    struct list mmap_list;
     struct thread* parent;
     int child_status;
     int exit;

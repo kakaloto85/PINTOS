@@ -58,3 +58,38 @@ destroy_spt(struct thread* thread){
     hash_destroy(&thread->spt, spte_free); 
 }
 
+bool 
+create_spte_from_exec(struct file *file, int32_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes,bool writable)
+{
+  struct spte *spte = malloc(sizeof(struct spte));
+  if (!spte)
+    return false;
+
+  spte->upage = pg_round_down(upage);  
+  spte->state = EXEC_FILE;
+
+  spte->file = file;
+  spte->offset = ofs;
+  spte->read_bytes = read_bytes;
+  spte->zero_bytes = zero_bytes;
+  spte->writable = writable;
+  return (hash_insert(&thread_current()->spt, &spte->elem) == NULL);
+}
+bool 
+create_spte_from_mmf(struct file *file, int32_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes,bool writable,struct mmap_file* mmf)
+{
+  struct spte *spte = malloc(sizeof(struct spte));
+  if (!spte)
+    return false;
+  spte->upage = pg_round_down(upage);  
+  spte->state = EXEC_FILE;
+
+  spte->file = file;
+  spte->offset = ofs;
+  spte->read_bytes = read_bytes;
+  spte->zero_bytes = zero_bytes;
+  spte->writable = true;
+      list_push_back(&mmf->spte_list,&spte->mmf_elem);
+
+  return (hash_insert(&thread_current()->spt, &spte->elem) == NULL);
+}

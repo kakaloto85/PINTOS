@@ -112,6 +112,67 @@ kill (struct intr_frame *f)
     }
 }
 
+
+// static bool
+// load_from_exec2(struct file *file, off_t ofs, uint8_t *upage,
+//               uint32_t read_bytes, uint32_t zero_bytes, bool writable)
+//               {
+//   ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
+//   ASSERT (pg_ofs (upage) == 0);
+//   ASSERT (ofs % PGSIZE == 0);
+//   file_seek (file, ofs);
+
+//   while (read_bytes > 0 || zero_bytes > 0) 
+//     {
+//       /* Calculate how to fill this page.
+//          We will read PAGE_READ_BYTES bytes from FILE
+//          and zero the final PAGE_ZERO_BYTES bytes. */
+//       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+//       size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+//       struct spte* spte = create_spte(upage,MEMORY);
+//       if(hash_insert (&(thread_current()->spt), &(spte->elem))!=NULL){
+//           printf("fadsdsfasddfsa\n");
+//       }
+//       spte->writable=writable;
+//       uint8_t *kpage = frame_alloc (PAL_USER,spte);
+
+//       // if (kpage == NULL)
+//       if (kpage == NULL)
+//         return false;
+
+//       /* Load this page. */
+//       // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+//       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+//         {
+//           // palloc_free_page (kpage);
+//           free_frame (kpage);
+
+//           return false; 
+//         }
+//       // memset (kpage + page_read_bytes, 0, page_zero_bytes);
+//       memset (kpage + page_read_bytes, 0, page_zero_bytes);
+
+//       /* Add the page to the process's address space. */
+//       if (!install_page (upage, kpage, writable)) 
+//         {
+//           free_frame (kpage);
+//           return false; 
+//         }
+
+//       /* Advance. */
+//       read_bytes -= page_read_bytes;
+//       zero_bytes -= page_zero_bytes;
+//       upage += PGSIZE;
+//     }
+//   return true;
+// }
+
+
+
+
+
+
 /* Page fault handler.  This is a skeleton that must be filled in
    to implement virtual memory.  Some solutions to project 2 may
    also require modifying this code.
@@ -123,6 +184,7 @@ kill (struct intr_frame *f)
    can find more information about both of these in the
    description of "Interrupt 14--Page Fault Exception (#PF)" in
    [IA32-v3a] section 5.15 "Exception and Interrupt Reference". */
+   
 static void
 page_fault (struct intr_frame *f) 
 {
@@ -147,7 +209,7 @@ page_fault (struct intr_frame *f)
 
   /* Count page faults. */
   page_fault_cnt++;
-   // printf("hi 정윤 \n");
+   // printf("fault address %d\n",fault_addr);
   /* Determine cause. */
   //page table?에 있음
   not_present = (f->error_code & PF_P) == 0;
@@ -156,16 +218,19 @@ page_fault (struct intr_frame *f)
    bool load = false;
     if (not_present&&is_user_vaddr(fault_addr))
       {
-         // printf("hi 정윤2 \n");
-         // printf("cur tid  = %d\n",cur->tid);
          // struct spte *spte = get_spte(&cur->spt,pg_round_down(fault_addr));
          struct spte *spte = get_spte(&cur->spt,(fault_addr));
          if (spte != NULL){
-
 	         if(spte->state == SWAP_DISK) {
+               // printf("Swap  = %d\n",cur->tid);
                // printf("hi \n");
                load = load_from_swap(spte);
                // printf("after load_from_swap\n");
+            }
+            else if(spte->state == EXEC_FILE){
+               // printf("Exec file  = %d\n",cur->tid);
+               // printf("load_from_exec\n");
+               load = load_from_exec(spte);
             }
          }
          

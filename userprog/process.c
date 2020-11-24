@@ -75,6 +75,7 @@ process_execute (const char *file_name)
   cur=thread_current();
 
   tid = thread_create (realname, PRI_DEFAULT, start_process, fn_copy);
+    // printf("exe : tid %d \n",tid);
   // free(realname);
   sema_down(&cur->load_lock);
 
@@ -87,7 +88,7 @@ process_execute (const char *file_name)
   for (e = list_begin(&thread_current()->child_wait_list); e != list_end(&thread_current()->child_wait_list); e = list_next(e)) {
       child_thread = list_entry(e, struct thread, child_list_elem);
       if (child_thread->exit == 1) {
-        // printf("load fail\n");
+        printf("load fail\n");
         return process_wait(tid);
       }
     }
@@ -211,7 +212,10 @@ struct file
 void
 process_exit (void)
 {
+
   struct thread *cur = thread_current ();
+      // printf("exe : tid %d \n",cur->tid);
+
   struct thread* parent = thread_current()->parent;
   uint32_t *pd;
   // struct list wait_list = (cur->parent)->child_wait_list;
@@ -219,10 +223,17 @@ process_exit (void)
     struct file* file_now = cur->fd_table[i];
     // if ((file_now->deny_write) == true)
     if(file_now!=NULL){
+      // munmap(i);
       file_close(file_now);
     }
   }
-
+  // printf("here \n");
+  // file_seek(cur->file,0);
+  if(cur->file!=NULL){
+    // printf("here\n");
+        // file_allow_write (cur->file);
+          file_close(cur->file);
+  }
   destroy_spt(thread_current());
 
   /* Destroy the current process's page directory and switch back
@@ -438,6 +449,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   /* Set up stack. */
   if (!setup_stack (esp)){
+    printf("setup_stack fail\n");
     goto done;
   }
 
@@ -449,8 +461,26 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
     // file_allow_write(file);
-  file_close (file);
+
+    //일단 없앰
+  if(success){
+  t->file =file;
+  file_deny_write(file);
+  // file_close(file);
+  }
+  else{
+    // file_deny_write(file);
+    
+    t->file = file;
+    }
+    // file_close (file); //요거는 나중에 다시 돌려놔야 할수도! 2020.11.19
   return success;
+//  done:
+//   /* We arrive here whether the load is successful or not. */
+//     // file_allow_write(file);
+//   file_close (file);
+//   return success;
+
 }
 
 /* load() helpers. */
@@ -523,51 +553,31 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
-  file_seek (file, ofs);
+
+  //이게 필요할까?
+  // file_seek (file, ofs);
+  // printf("upage %d\n",upage);
+  // printf("offset %d\n",ofs);
+  // printf("read %d\n",read_bytes);
 
   while (read_bytes > 0 || zero_bytes > 0) 
     {
+        // printf("offset %d\n",ofs);
       /* Calculate how to fill this page.
          We will read PAGE_READ_BYTES bytes from FILE
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-      // if (page_read_bytes == PGSIZE)
-      //   printf("hi9 \n");
-      // else if (page_zero_bytes == PGSIZE)
-      //   printf("hi10 \n");
-      // else
-      //   printf("hi11 \n");
-      /* Get a page of memory. */
-      struct spte* spte = create_spte(upage,MEMORY);
-      if(hash_insert (&(thread_current()->spt), &(spte->elem))!=NULL){
-          printf("fadsdsfasddfsa\n");
-      }
-      spte->writable=writable;
-      uint8_t *kpage = frame_alloc (PAL_USER,spte);
 
-      // if (kpage == NULL)
-      if (kpage == NULL)
+      bool result= create_spte_from_exec(file, ofs,upage, page_read_bytes, page_zero_bytes,writable);
+      if(!result){
+        printf("spte error at load_segment");
         return false;
+      }
+      // spte->writable=writable;
 
-      /* Load this page. */
-      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          // palloc_free_page (kpage);
-          free_frame (kpage);
 
-          return false; 
-        }
-      // memset (kpage + page_read_bytes, 0, page_zero_bytes);
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
-
-      /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable)) 
-        {
-          free_frame (kpage);
-          return false; 
-        }
+      ofs+= page_read_bytes;
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -576,6 +586,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
     }
   return true;
 }
+
+              
 
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
@@ -604,7 +616,7 @@ setup_stack (void **esp)
         // spte->upage = *esp;
       }
       else{
-        printf("here\n");
+        // printf("here\n");
         free_frame(kpage);
       }
     }
