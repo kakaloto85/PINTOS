@@ -82,10 +82,11 @@ create_spte_from_mmf(struct file *file, int32_t ofs, uint8_t *upage, uint32_t re
   if (!spte)
     return false;
   spte->upage = pg_round_down(upage);  
-  spte->state = EXEC_FILE;
-
+  spte->state = MM_FILE;
+  spte->mmap_file = mmf;
   spte->file = file;
   spte->offset = ofs;
+  
   spte->read_bytes = read_bytes;
   spte->zero_bytes = zero_bytes;
   spte->writable = true;

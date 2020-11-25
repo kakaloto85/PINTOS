@@ -227,8 +227,7 @@ page_fault (struct intr_frame *f)
                load = load_from_swap(spte);
                // printf("after load_from_swap\n");
             }
-            else if(spte->state == EXEC_FILE){
-               // printf("Exec file  = %d\n",cur->tid);
+            else if(spte->state == EXEC_FILE||spte->state==MM_FILE){
                // printf("load_from_exec\n");
                load = load_from_exec(spte);
             }

@@ -241,7 +241,6 @@ int write (int fd, const void *buffer, unsigned size){
 }
 
 int read (int fd, void *buffer, unsigned size){
-  // printf("read\n");
   /* check the validity of buffer pointer */
   check_user_sp(buffer);
 
@@ -265,7 +264,7 @@ int read (int fd, void *buffer, unsigned size){
 }
 
 int open (const char *file){
-  /* check the validity of file */
+  // printf("filename=%s\n",file);
   if(file==NULL){
 
     exit(-1);
@@ -370,32 +369,75 @@ bool load_from_exec (struct spte *spte)
 {
     
     uint8_t *frame = frame_alloc(PAL_USER, spte);
-    if (!frame) return false;
-    
-    if (spte->read_bytes > 0){
-      sema_down(&file_lock);
-      // file_reopen(spte->file);
-      // printf("offset %d , tide %d,frame %d\n",spte->offset,thread_current()->tid,frame);
-      if ((int) spte->read_bytes != file_read_at(spte->file, frame, spte->read_bytes, spte->offset)){
-        printf("1\n");
+    if (!frame) {
+      // sema_down(&file_lock);
+      // file_close (spte->file);
+      // sema_up (&file_lock);
+      return false;
+    }
+     
+    if (spte->state==MM_FILE){
+      if (spte->read_bytes > 0){
+        sema_down(&file_lock);
+        // file_reopen(spte->file);
+        // printf("offset %d , tide %d,frame %d\n",spte->offset,thread_current()->tid,frame);
+        if ((int) spte->read_bytes != file_read_at(spte->mmap_file->file, frame, spte->read_bytes, spte->offset)){
+          printf("1\n");
 
-        printf("rb %d offset %d \n",spte->read_bytes,spte->offset);
-	      // file_close(spte->file);
+          printf("rb %d offset %d \n",spte->read_bytes,spte->offset);
+          // file_close(spte->file);
+          sema_up(&file_lock);
+          free_frame(frame);
+          // sema_down(&file_lock);
+          // file_close (spte->file);
+          // sema_up (&file_lock);
+          // file_close(spte->file); 
+          return false;
+        }
         sema_up(&file_lock);
-	      free_frame(frame);
-	       
-        return false;
+        memset(frame + spte->read_bytes, 0, spte->zero_bytes);
       }
-      sema_up(&file_lock);
-      memset(frame + spte->read_bytes, 0, spte->zero_bytes);
+      else{
+        memset (frame, 0, PGSIZE);
+      }
 
     }
+    else{
+      if (spte->read_bytes > 0){
+        sema_down(&file_lock);
+        // file_reopen(spte->file);
+        // printf("offset %d , tide %d,frame %d\n",spte->offset,thread_current()->tid,frame);
+        if ((int) spte->read_bytes != file_read_at(spte->file, frame, spte->read_bytes, spte->offset)){
+          printf("1\n");
 
+          printf("rb %d offset %d \n",spte->read_bytes,spte->offset);
+          // file_close(spte->file);
+          sema_up(&file_lock);
+          free_frame(frame);
+          // sema_down(&file_lock);
+          // file_close (spte->file);
+          // sema_up (&file_lock);
+          // file_close(spte->file); 
+          return false;
+        }
+        sema_up(&file_lock);
+        memset(frame + spte->read_bytes, 0, spte->zero_bytes);
+      }
+      else{
+        memset (frame, 0, PGSIZE);
+      }
+    }
     if (!install_page(spte->upage, frame, spte->writable)) {
         free_frame(frame);
+        // sema_down(&file_lock);
+        // file_close (spte->file);
+        // sema_up (&file_lock);
         // file_close(spte->file); 
         return false;
     }
+    // sema_down(&file_lock);
+    // file_close (spte->file);
+    // sema_up (&file_lock);
     // file_close(spte->file);     
 
     // file_seek(spte->file,0);
@@ -404,6 +446,10 @@ bool load_from_exec (struct spte *spte)
 }
 
 int mmap (int fd, void* upage) {
+  if(get_spte(&thread_current()->spt,upage))
+    return -1;
+  if(pg_round_down(upage)!=upage)
+    return -1;
   if(!is_user_vaddr(upage)||upage<0x08048000)
     return -1;
   ASSERT(fd!=0&&fd!=1);
@@ -425,17 +471,18 @@ int mmap (int fd, void* upage) {
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      bool result=  create_spte_from_mmf(file, ofs,upage, page_read_bytes, page_zero_bytes,true,mmap_file);
-      if(!result){
-        printf("spte error at load_segment");
+      if(!get_spte(&cur->spt,upage)){
+        bool result=  create_spte_from_mmf(file, ofs,upage, page_read_bytes, page_zero_bytes,true,mmap_file);
+        if(!result){
+          printf("spte error at load_segment");
+        }
+        ofs+= PGSIZE;
+        /* Advance. */
+        read_bytes -= page_read_bytes;
+        upage += PGSIZE;
       }
-      // spte->writable=writable;
-
-      ofs+= PGSIZE;
-
-      /* Advance. */
-      read_bytes -= page_read_bytes;
-      upage += PGSIZE;
+      else
+        return -1;
     }
   sema_down(&file_lock);
   struct file* new_file = file_reopen(file);
@@ -474,6 +521,6 @@ munmap(int mid){
   sema_down(&file_lock);
   file_close (mmap_file->file);
   sema_up (&file_lock);
-
+  list_remove(&mmap_file->elem);
   free(mmap_file);
 }

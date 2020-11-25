@@ -31,6 +31,7 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
+
   char *fn_copy;
     char *fn_copy2;
   tid_t tid;
@@ -75,7 +76,7 @@ process_execute (const char *file_name)
   cur=thread_current();
 
   tid = thread_create (realname, PRI_DEFAULT, start_process, fn_copy);
-    // printf("exe : tid %d \n",tid);
+    // printf("exec : tid %d \n",tid);
   // free(realname);
   sema_down(&cur->load_lock);
 
@@ -88,7 +89,7 @@ process_execute (const char *file_name)
   for (e = list_begin(&thread_current()->child_wait_list); e != list_end(&thread_current()->child_wait_list); e = list_next(e)) {
       child_thread = list_entry(e, struct thread, child_list_elem);
       if (child_thread->exit == 1) {
-        printf("load fail\n");
+        // printf("load fail\n");
         return process_wait(tid);
       }
     }
@@ -178,6 +179,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid) 
 {
+  // printf("tid %d\n",child_tid);
   struct thread *cur = thread_current();
   struct list wait_list = cur -> child_wait_list;
   struct list_elem* e;
@@ -227,6 +229,16 @@ process_exit (void)
       file_close(file_now);
     }
   }
+  struct list_elem* e, *next;
+  if(!list_empty(&thread_current()->mmap_list)){
+    for(e=list_begin(&thread_current()->mmap_list);e!=list_end(&thread_current()->mmap_list);e=next){
+          next = list_next (e);
+
+        munmap (list_entry(e,struct mmap_file,elem)->map_id);
+    }
+  }
+    
+
   // printf("here \n");
   // file_seek(cur->file,0);
   if(cur->file!=NULL){
@@ -469,11 +481,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   // file_close(file);
   }
   else{
-    // file_deny_write(file);
-    
     t->file = file;
+    // file_close (file);
     }
-    // file_close (file); //요거는 나중에 다시 돌려놔야 할수도! 2020.11.19
+    // file_close(file); //요거는 나중에 다시 돌려놔야 할수도! 2020.11.19
   return success;
 //  done:
 //   /* We arrive here whether the load is successful or not. */
@@ -558,17 +569,18 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   // file_seek (file, ofs);
   // printf("upage %d\n",upage);
   // printf("offset %d\n",ofs);
-  // printf("read %d\n",read_bytes);
 
   while (read_bytes > 0 || zero_bytes > 0) 
     {
+  //       printf("read %d",read_bytes);
+  // printf("zero %d",zero_bytes);
+
         // printf("offset %d\n",ofs);
       /* Calculate how to fill this page.
          We will read PAGE_READ_BYTES bytes from FILE
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-
       bool result= create_spte_from_exec(file, ofs,upage, page_read_bytes, page_zero_bytes,writable);
       if(!result){
         printf("spte error at load_segment");

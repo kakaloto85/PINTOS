@@ -13,17 +13,12 @@ void*
 frame_alloc (enum palloc_flags flags,struct spte *spte){
   if ((flags & PAL_USER) == 0 )
     return NULL;
-    // printf("1 \n");
     lock_acquire(&frame_table_lock);
 
   void *frame = palloc_get_page(flags);
-    // printf("frame: %d",frame);
-    // printf("here 1? \n");
       lock_release(&frame_table_lock);
 
   if (!frame){
-    // printf("here?");
-    // printf("2 \n");
     lock_acquire(&frame_table_lock);
     struct fte *fte = find_victim();
         lock_release(&frame_table_lock);
@@ -32,13 +27,10 @@ frame_alloc (enum palloc_flags flags,struct spte *spte){
     swap_out(fte);
 
     // swap_out된 frame의 spte, pte 업데이트
-    // spte_update(fte->spte);
     frame_table_update(fte, spte, thread_current());
-
-    } else {
-
-  create_fte(frame,spte);
-
+    } 
+  else {
+    create_fte(frame,spte);
   }
   return frame;
 }

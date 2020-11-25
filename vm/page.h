@@ -17,6 +17,7 @@ struct spte {
     block_sector_t swap_location; //index for swap in/out
     //for lazy loading 
     struct file *file;
+    struct mmap_file *mmap_file;
     int32_t offset;
     uint32_t read_bytes;
     uint32_t zero_bytes;
