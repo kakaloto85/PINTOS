@@ -117,3 +117,64 @@
 // inode.c 로 옮기기
 // sector 0, 1 은 안 겹치게 하기
 // 디버깅
+
+// dir 위한 inode 인지 file을 위한 inode인지 구분하는 flag 필요 => 한양대에서는 inode_disk에 수정하라고 되어있는데, inode에다가 넣어도 되지 않을까?
+// inode_create 에서 dir inode 인지 file inode인지 구분하는 flag를 parameter로 받는다.
+
+// exec으로 child process를 생성하고 실행할 때, 부모의 current directory를 받을 수 있도록 해야한다. => 즉, thread 안에다가 cur_dir을 새로운 field로 저장해야할 것이다.
+
+// parse_path (한양대에서의 함수 이름) 함수 구현: 
+// struct dir* parse_path (char *path_name, char *file_name) {
+//     struct dir *dir;
+//     if (path_name == NULL || file_name == NULL)
+//     goto fail;
+//     if (strlen(path_name) == 0)
+//     return NULL;
+//     /* PATH_NAME의 절대/상대경로에 따른 디렉터리 정보 저장 (구현)*/ 
+//     => '/' 로 시작하면, dir = dir_open_root() 로 설정 (절대경로)
+//     =>  else, thread_current 의 dir을 기준으로 시작 (상대경로) dir = thread_current ->dir_flag
+//     char *token, *nextToken, *savePtr;
+//     token = strtok_r (path_name, "/", &savePtr); ->  
+//     nextToken = strtok_r (NULL, "/", &savePtr);
+//     while (token != NULL && nextToken != NULL){
+//     /* dir에서 token이름의 파일을 검색하여 inode의 정보를 저장*/ -> dir_lookup(dir, token, &inode) => dir_lookup 에서의 수정이 필요할 수도.. (여기서 . , .. 구분하는 것인가?)
+//     /* inode가 파일일 경우 NULL 반환 */ =>  return NULL
+//     /* dir의 디렉터리 정보를 메모리에서 해지 */ => dir_close(dir)
+//     /* inode의 디렉터리 정보를 dir에 저장 */ =>. dir = next (dir_open(inode))  
+//     /* token에 검색할 경로 이름 저장 */ => dir_entry->name + token ?
+//     }
+//     /* token의 파일 이름을 file_name에 저장 -> file_name = token
+//     /* dir 정보 반환 */ -> return dir
+// }
+// 
+// parse_path (한양대에서의 함수 이름) 함수 구현: 
+// struct dir* parse_path (char *path_name, char *file_name) {
+//     struct dir *dir;
+//     if (path_name == NULL || file_name == NULL)
+//     goto fail;
+//     if (strlen(path_name) == 0)
+//     return NULL;
+//     if (path_name[0] == '/')
+//          dir = dir_open_root();
+// 
+//     else
+//          dir = thread_current() -> cur_dir;
+//     char *token, *nextToken, *savePtr;
+//     token = strtok_r (path_name, "/", &savePtr); 
+//     nextToken = strtok_r (NULL, "/", &savePtr);
+//     while (token != NULL && nextToken != NULL) {
+//      struct *inode inode = NULL;
+//          
+//     if (!dir_lookup(dir, token, &inode) || inode->data.dir_flag == false) {
+//          dir_close(dir);
+//          return NULL;         
+//     }
+//     
+//     dir = dir_open(inode);
+//     /* inode의 디렉터리 정보를 dir에 저장 */ =>. dir = next (dir_open(inode))  
+//     /* token에 검색할 경로 이름 저장 */ => dir_entry->name + token ?
+//     }
+//     /* token의 파일 이름을 file_name에 저장 -> file_name = token
+//     /* dir 정보 반환 */ -> return dir
+// }
+// 

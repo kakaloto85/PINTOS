@@ -48,7 +48,6 @@ sort_chunks (const char *subprocess, int exit_status)
       int handle;
 
       msg ("sort chunk %zu", i);
-
       /* Write this chunk to a file. */
       snprintf (fn, sizeof fn, "buf%zu", i);
       create (fn, CHUNK_SIZE);

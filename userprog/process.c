@@ -141,8 +141,6 @@ start_process (void *file_name_)
     sema_up(&(thread_current()->parent)->load_lock);
     sema_init(&sema,1);
     sema_down(&sema);
-
-
   }
   else {
     // list_remove(&(thread_current()->child_list_elem));
@@ -151,7 +149,6 @@ start_process (void *file_name_)
     /* If load failed, quit. */
     palloc_free_page (file_name);
         sema_up(&(thread_current()->parent)->load_lock);
-
     exit(-1);
     }
   
@@ -369,7 +366,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
-  // printf("load %d\n",thread_current()->tid);
+  // printf("load1 %s\n",file_name);
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
@@ -379,6 +376,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   /* Open executable file. */
   file = filesys_open (file_name);
+    // printf("load2 %s\n",file_name);
+
   // file_deny_write(file);
 
   if (file == NULL) 
@@ -398,6 +397,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: error loading executable\n", file_name);
       goto done; 
     }
+    // printf("load3 %s\n",file_name);
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;

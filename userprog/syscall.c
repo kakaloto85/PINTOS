@@ -189,7 +189,6 @@ bool create (const char *file, unsigned initial_size){
   /* Check the validity of file */
 
   if(file==NULL||*file==NULL){
-
     exit(-1);
   }
   else if(strlen(file)==0||strlen(file)>14){
@@ -218,7 +217,7 @@ bool remove (const char *file){
 }
 
 int write (int fd, const void *buffer, unsigned size){
-  // printf("write\n");
+  // printf("write at : %d\n",fd);
   /* check the validity of buffer pointer */
   check_user_sp(buffer);
   // if(*(char*)buffer==NULL)
@@ -228,13 +227,13 @@ int write (int fd, const void *buffer, unsigned size){
 
   /* If buffer is valid, lock write for file synchronization */ 
   sema_down(&file_lock);
-  // printf("write at %s\n",cur->name);
   /* Fd 1 means standard output(ex)printf) */
 
   if(fd ==1){
 
     putbuf(buffer,size);
     sema_up(&file_lock);
+        // printf("write at %s\n",cur->name);
 
     return size;
   }
@@ -245,10 +244,10 @@ int write (int fd, const void *buffer, unsigned size){
 
     /* If file is running process, deny write */
     if(current_file->deny_write){
+
       sema_up(&file_lock);
       return 0;
     }
-
     // printf("write! \n");
     int result= file_write (cur->fd_table[fd], buffer, size);
     sema_up(&file_lock);
@@ -280,7 +279,7 @@ int read (int fd, void *buffer, unsigned size){
 }
 
 int open (const char *file){
-  // printf("filename=%s\n",file);
+  // printf("open filename=%s\n",file);
   if(file==NULL){
 
     exit(-1);
