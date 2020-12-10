@@ -36,6 +36,7 @@
 #include "devices/ide.h"
 #include "filesys/filesys.h"
 #include "filesys/fsutil.h"
+#include "filesys/buffer.h"
 #endif
 
 /* Page directory with kernel mappings only. */
@@ -129,6 +130,8 @@ main (void)
   /* Initialize file system. */
   ide_init ();
   locate_block_devices ();
+  cache_list_init();
+
   filesys_init (format_filesys);
 #endif
 #ifdef VM

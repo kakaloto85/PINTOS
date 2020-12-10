@@ -205,6 +205,8 @@ page_fault (struct intr_frame *f)
      be assured of reading CR2 before it changed). */
 
   intr_enable ();
+                  // printf("fault addr : %d\n",fault_addr);
+
        struct thread * cur = thread_current();
 
   /* Count page faults. */
@@ -233,7 +235,7 @@ page_fault (struct intr_frame *f)
             }
          }
          
-         else if (fault_addr >= f->esp - 32){
+         else if (f->esp>=fault_addr&&fault_addr >= f->esp - 32){
             // printf("f->esp = %d\n",f->esp);
             //             printf("fault addr= %d\n",fault_addr);
 
@@ -255,7 +257,6 @@ page_fault (struct intr_frame *f)
    // if(not_present)
    //    printf("not p\n");
   if(not_present||write||user){
-               //  printf("fault addr : %d",fault_addr);
 
      exit(-1);
   }

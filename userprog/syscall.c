@@ -104,7 +104,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_TELL:                   /* Report current position in a file. */
 
       check_user_sp(pointer+4);
-      tell(*(int*)(pointer+4));
+      f->eax=tell(*(int*)(pointer+4));
       break;
     case SYS_CLOSE:
       // sema_down(&file_lock);
@@ -130,7 +130,21 @@ syscall_handler (struct intr_frame *f UNUSED)
             // sema_up(&file_lock);
 
       break;                      /* Close a file. */
-
+    // case SYS_CHDIR:
+    //   check_user_sp(pointer+4);
+    //   f->eax=chdir(*(int*)pointer+4);
+    // case SYS_MKDIR:
+    //   check_user_sp(pointer+4);
+    //   f->eax=mkdir(*(int*)pointer+4);
+    // case SYS_READDIR:
+    //   check_user_sp(pointer+8);
+    //   f->eax=readdir(*(int*)pointer+4,*(int*)pointer+8);
+    // case SYS_ISDIR:
+    //   check_user_sp(pointer+4);
+    //   f->eax=isdir(*(int*)pointer+4);
+    // case SYS_INUMBER:
+    //   check_user_sp(pointer+4);
+    //   f->eax=inumber(*(int*)pointer+4);
     default:
       exit(-1);
       // break;
@@ -207,6 +221,8 @@ int write (int fd, const void *buffer, unsigned size){
   // printf("write\n");
   /* check the validity of buffer pointer */
   check_user_sp(buffer);
+  // if(*(char*)buffer==NULL)
+  //   exit(-1);
 
   struct thread *cur = thread_current();
 
@@ -323,6 +339,7 @@ void seek (int fd, unsigned position){
 
 unsigned tell (int fd){
   struct thread *cur =thread_current();
+  // printf('here\n');
   file_tell (cur->fd_table[fd]);
 }
 
@@ -369,29 +386,25 @@ bool load_from_exec (struct spte *spte)
 {
     
     uint8_t *frame = frame_alloc(PAL_USER, spte);
+    frame_table_lock_acquire();
+
     if (!frame) {
-      // sema_down(&file_lock);
-      // file_close (spte->file);
-      // sema_up (&file_lock);
+      frame_table_lock_release();
+
       return false;
     }
      
     if (spte->state==MM_FILE){
       if (spte->read_bytes > 0){
         sema_down(&file_lock);
-        // file_reopen(spte->file);
-        // printf("offset %d , tide %d,frame %d\n",spte->offset,thread_current()->tid,frame);
         if ((int) spte->read_bytes != file_read_at(spte->mmap_file->file, frame, spte->read_bytes, spte->offset)){
           printf("1\n");
 
           printf("rb %d offset %d \n",spte->read_bytes,spte->offset);
-          // file_close(spte->file);
           sema_up(&file_lock);
+          frame_table_lock_release();
+
           free_frame(frame);
-          // sema_down(&file_lock);
-          // file_close (spte->file);
-          // sema_up (&file_lock);
-          // file_close(spte->file); 
           return false;
         }
         sema_up(&file_lock);
@@ -405,19 +418,12 @@ bool load_from_exec (struct spte *spte)
     else{
       if (spte->read_bytes > 0){
         sema_down(&file_lock);
-        // file_reopen(spte->file);
-        // printf("offset %d , tide %d,frame %d\n",spte->offset,thread_current()->tid,frame);
         if ((int) spte->read_bytes != file_read_at(spte->file, frame, spte->read_bytes, spte->offset)){
           printf("1\n");
-
           printf("rb %d offset %d \n",spte->read_bytes,spte->offset);
-          // file_close(spte->file);
           sema_up(&file_lock);
+          frame_table_lock_release();
           free_frame(frame);
-          // sema_down(&file_lock);
-          // file_close (spte->file);
-          // sema_up (&file_lock);
-          // file_close(spte->file); 
           return false;
         }
         sema_up(&file_lock);
@@ -428,20 +434,14 @@ bool load_from_exec (struct spte *spte)
       }
     }
     if (!install_page(spte->upage, frame, spte->writable)) {
+      frame_table_lock_release();
+
         free_frame(frame);
-        // sema_down(&file_lock);
-        // file_close (spte->file);
-        // sema_up (&file_lock);
-        // file_close(spte->file); 
         return false;
     }
-    // sema_down(&file_lock);
-    // file_close (spte->file);
-    // sema_up (&file_lock);
-    // file_close(spte->file);     
-
-    // file_seek(spte->file,0);
     spte->state = MEMORY;  
+    frame_table_lock_release();
+
     return true;
 }
 
@@ -463,9 +463,9 @@ int mmap (int fd, void* upage) {
     return -1;
   int ofs=0;
   struct mmap_file* mmap_file = (struct mmap_file*) malloc(sizeof(struct mmap_file));
-    list_init(&mmap_file->spte_list);
-    list_push_back(&cur->mmap_list,&mmap_file->elem);
-    mmap_file->map_id=fd;
+  list_init(&mmap_file->spte_list);
+  list_push_back(&cur->mmap_list,&mmap_file->elem);
+  mmap_file->map_id=fd;
   while (ofs<filesize) 
     {
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;

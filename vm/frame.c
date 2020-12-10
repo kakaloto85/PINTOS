@@ -21,10 +21,10 @@ frame_alloc (enum palloc_flags flags,struct spte *spte){
   if (!frame){
     lock_acquire(&frame_table_lock);
     struct fte *fte = find_victim();
-        lock_release(&frame_table_lock);
 
     frame = fte->frame;
     swap_out(fte);
+        lock_release(&frame_table_lock);
 
     // swap_out된 frame의 spte, pte 업데이트
     frame_table_update(fte, spte, thread_current());
@@ -181,3 +181,80 @@ find_frame(void* frame){
   return NULL;
 
 }
+
+void
+frame_table_lock_acquire(){
+  lock_acquire(&frame_table_lock);
+}
+void
+frame_table_lock_release(){
+  lock_release(&frame_table_lock);
+}
+
+
+// bool
+// Do_load_exec(void* frame,struct lock file_lock){
+//     if (!frame) {
+//           lock_release(&frame_table_lock);
+
+//       return false;
+//     }
+     
+//     if (spte->state==MM_FILE){
+//       if (spte->read_bytes > 0){
+//         sema_down(&file_lock);
+//         if ((int) spte->read_bytes != file_read_at(spte->mmap_file->file, frame, spte->read_bytes, spte->offset)){
+//           printf("1\n");
+
+//           printf("rb %d offset %d \n",spte->read_bytes,spte->offset);
+//           sema_up(&file_lock);
+//               lock_release(&frame_table_lock);
+
+//           free_frame(frame);
+//           return false;
+//         }
+//         sema_up(&file_lock);
+//         memset(frame + spte->read_bytes, 0, spte->zero_bytes);
+//       }
+//       else{
+//         memset (frame, 0, PGSIZE);
+//       }
+
+//     }
+//     else{
+//       if (spte->read_bytes > 0){
+//         sema_down(&file_lock);
+//         if ((int) spte->read_bytes != file_read_at(spte->file, frame, spte->read_bytes, spte->offset)){
+//           printf("1\n");
+//           printf("rb %d offset %d \n",spte->read_bytes,spte->offset);
+//           sema_up(&file_lock);
+//               lock_release(&frame_table_lock);
+
+//           free_frame(frame);
+//           return false;
+//         }
+//         sema_up(&file_lock);
+//         memset(frame + spte->read_bytes, 0, spte->zero_bytes);
+//       }
+//       else{
+//         memset (frame, 0, PGSIZE);
+//       }
+//     }
+//     if (!install_page(spte->upage, frame, spte->writable)) {
+//           lock_release(&frame_table_lock);
+
+//         free_frame(frame);
+
+//         return false;
+//     }
+//     spte->state = MEMORY; 
+//     lock_release(&frame_table_lock);
+ 
+//     return true;
+// }
+
+
+
+
+
+

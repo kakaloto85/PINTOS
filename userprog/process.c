@@ -242,7 +242,6 @@ process_exit (void)
   // printf("here \n");
   // file_seek(cur->file,0);
   if(cur->file!=NULL){
-    // printf("here\n");
         // file_allow_write (cur->file);
           file_close(cur->file);
   }
@@ -753,7 +752,7 @@ stack_growth(void* fault_addr){
   // printf("spte = %d",pg_round_down(thread_current()->esp-PGSIZE));
   spte->writable = true;
   // printf("fault_addr:%d\n",thread_current()->esp);
-        if(hash_insert (&(thread_current()->spt), &(spte->elem))!=NULL){
+  if(hash_insert (&(thread_current()->spt), &(spte->elem))!=NULL){
       };
   void* frame = frame_alloc((PAL_USER|PAL_ZERO),spte);
 

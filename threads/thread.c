@@ -352,6 +352,7 @@ thread_tid (void)
 void
 thread_exit (void) 
 {
+  
   ASSERT (!intr_context ());
   struct thread* parent = thread_current()->parent;
 #ifdef USERPROG
@@ -697,15 +698,15 @@ allocate_tid (void)
   return tid;
 }
 
-static mapid_t
-allocate_mid (void) 
-{
-  static mapid_t next_mid = 1;
-  mapid_t mid;
-  mid = next_mid++;
+// static mapid_t
+// allocate_mid (void) 
+// {
+//   static mapid_t next_mid = 1;
+//   mapid_t mid;
+//   mid = next_mid++;
 
-  return mid;
-}
+//   return mid;
+// }
 
 /*gw 추가한 코드*/
 

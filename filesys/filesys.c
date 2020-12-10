@@ -6,6 +6,7 @@
 #include "filesys/free-map.h"
 #include "filesys/inode.h"
 #include "filesys/directory.h"
+// #include "filesys/buffer.h"
 
 /* Partition that contains the file system. */
 struct block *fs_device;
@@ -26,7 +27,7 @@ filesys_init (bool format)
 
   if (format) 
     do_format ();
-
+  // printf("hi 1 \n");
   free_map_open ();
 }
 
@@ -46,6 +47,9 @@ bool
 filesys_create (const char *name, off_t initial_size) 
 {
   block_sector_t inode_sector = 0;
+  // printf('size %d\n',initial_size);
+  //dir_open_root가 아니라, 원하는 directory에 create하도록 만들어야됨!
+  // 그러면 항상 0번째 sector index에 생성하는건가?
   struct dir *dir = dir_open_root ();
   bool success = (dir != NULL
                   && free_map_allocate (1, &inode_sector)
@@ -66,11 +70,13 @@ filesys_create (const char *name, off_t initial_size)
 struct file *
 filesys_open (const char *name)
 {
+  //dir_open_root가 아니라, 원하는 directory에서 open하도록 만들어야됨!
   struct dir *dir = dir_open_root ();
   
   struct inode *inode = NULL;
 
   if (dir != NULL){
+    //dir에서 name에 해당하는 File의 inode를 리턴함
     dir_lookup (dir, name, &inode);
   }
   dir_close (dir);

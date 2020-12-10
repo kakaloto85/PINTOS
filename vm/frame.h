@@ -21,5 +21,9 @@ struct fte* find_victim2 (void);
 void frame_table_update(struct fte* fte  ,struct spte* spte,struct thread* cur);
 void free_frame(void* frame);
 struct fte* find_frame(void*frame);
+// bool Do_load_exec(void* frame,struct lock file_lock);
+
+void frame_table_lock_acquire(void);
+void frame_table_lock_release(void);
 
 #endif /* vm/frame.h */

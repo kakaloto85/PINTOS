@@ -122,7 +122,6 @@ struct thread
 
     struct file* file;
     tid_t pid;
-    mapid_t mid;
 
     struct semaphore wait_lock;
     struct semaphore load_lock;
