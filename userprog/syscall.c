@@ -7,6 +7,9 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include "vm/swap.h"
+#include "filesys/filesys.h"
+#include "filesys/directory.h"
+
 typedef int32_t off_t;
 
 struct file 
@@ -130,21 +133,26 @@ syscall_handler (struct intr_frame *f UNUSED)
             // sema_up(&file_lock);
 
       break;                      /* Close a file. */
-    // case SYS_CHDIR:
-    //   check_user_sp(pointer+4);
-    //   f->eax=chdir(*(int*)pointer+4);
-    // case SYS_MKDIR:
-    //   check_user_sp(pointer+4);
-    //   f->eax=mkdir(*(int*)pointer+4);
-    // case SYS_READDIR:
-    //   check_user_sp(pointer+8);
-    //   f->eax=readdir(*(int*)pointer+4,*(int*)pointer+8);
-    // case SYS_ISDIR:
-    //   check_user_sp(pointer+4);
-    //   f->eax=isdir(*(int*)pointer+4);
-    // case SYS_INUMBER:
-    //   check_user_sp(pointer+4);
-    //   f->eax=inumber(*(int*)pointer+4);
+    case SYS_CHDIR:
+      check_user_sp(pointer+4);
+      f->eax=chdir(*(int*)(pointer+4));
+      break;
+    case SYS_MKDIR:
+      check_user_sp(pointer+4);
+      f->eax=mkdir(*(int*)(pointer+4));
+      break;
+    case SYS_READDIR:
+      check_user_sp(pointer+8);
+      f->eax=readdir(*(int*)(pointer+4),*(int*)(pointer+8));
+      break;
+    case SYS_ISDIR:
+      check_user_sp(pointer+4);
+      f->eax=isdir(*(int*)(pointer+4));
+      break;
+    case SYS_INUMBER:
+      check_user_sp(pointer+4);
+      f->eax=inumber(*(int*)(pointer+4));
+      break;
     default:
       exit(-1);
       // break;
@@ -191,6 +199,7 @@ bool create (const char *file, unsigned initial_size){
   if(file==NULL||*file==NULL){
     exit(-1);
   }
+  //filesys_create에 아래 조건문 넣기!
   else if(strlen(file)==0||strlen(file)>14){
     return 0;
     // sema_up(&file_lock);
@@ -315,11 +324,12 @@ int open (const char *file){
         cur->fd_table[i]=opened_file;
         fd=i;
         sema_up(&file_lock);
+        // printf("fd=%d\n",fd);
+
 
         return fd;
     }
   }
-
   sema_up(&file_lock);
   return -1;
 }
@@ -515,11 +525,45 @@ munmap(int mid){
       file_write_at(mmap_file->file,spte->upage,spte->read_bytes,spte->offset);
       sema_up(&file_lock);
     }
-
   }
   sema_down(&file_lock);
   file_close (mmap_file->file);
   sema_up (&file_lock);
   list_remove(&mmap_file->elem);
   free(mmap_file);
+}
+
+bool chdir(const char *dir) {
+  struct dir *dir_now = find_dir(dir);
+  if(dir_now==NULL)
+    return false;
+  // printf("here\n");
+  thread_current()->dir_now = dir_now;
+  return true;
+}
+bool mkdir (const char *dir) {
+  // sema_down(&file_lock);
+  bool success;
+  success=filesys_create_dir(dir);
+  return success;
+  // sema_up (&file_lock);
+}
+
+bool isdir (int fd) {
+  struct file* file = thread_current()->fd_table[fd];
+  return is_dir(file->inode);
+}
+bool readdir (int fd, const char *name) {
+  struct file* file = thread_current()->fd_table[fd];   
+ if (is_dir(file->inode)) {
+  struct dir* dir = dir_open(file->inode);
+  return dir_readdir(dir, name);
+ }
+}
+// 
+// 
+// 
+int inumber(int fd) {
+  struct file* file = thread_current()->fd_table[fd];
+  return inode_get_inumber(file->inode);
 }

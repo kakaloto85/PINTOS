@@ -36,6 +36,7 @@ filesys_init (bool format)
 void
 filesys_done (void) 
 {
+  buffer_flush_all();
   free_map_close ();
 }
 
@@ -47,19 +48,42 @@ bool
 filesys_create (const char *name, off_t initial_size) 
 {
   block_sector_t inode_sector = 0;
-  // printf('size %d\n',initial_size);
+  // printf('filesys_create name %s size %d\n',name,initial_size);
   //dir_open_root가 아니라, 원하는 directory에 create하도록 만들어야됨!
   // 그러면 항상 0번째 sector index에 생성하는건가?
-  struct dir *dir = dir_open_root ();
+      char file_name[strlen(name)+1];
+      // printf("name = %s\n",name);
+    struct dir *dir = parse_path(name, file_name,1);
+      // printf("name = %s\n",file_name);
+
   bool success = (dir != NULL
                   && free_map_allocate (1, &inode_sector)
-                  && inode_create (inode_sector, initial_size)
-                  && dir_add (dir, name, inode_sector));
+                  && inode_create (inode_sector, initial_size,0)
+                  && dir_add (dir, file_name, inode_sector));
   if (!success && inode_sector != 0) 
     free_map_release (inode_sector, 1);
   dir_close (dir);
-
+  // printf("filesys_create success\n");
   return success;
+}
+bool
+filesys_create_dir (const char *name) {
+    // char directory[strlen(name)];
+      block_sector_t inode_sector = 0;
+    
+
+    char file_name[strlen(name)+1];
+    struct dir *dir = parse_path(name, file_name,1);
+    bool success = (dir != NULL
+                  && free_map_allocate (1, &inode_sector)
+                  && dir_create (inode_sector, 0)
+                  && dir_add (dir, file_name, inode_sector));
+    if (!success && inode_sector != 0) 
+        free_map_release (inode_sector, 1);
+    if(dir!=NULL)
+      dir_close (dir);
+    
+    return success;
 }
 
 /* Opens the file with the given NAME.
@@ -71,14 +95,18 @@ struct file *
 filesys_open (const char *name)
 {
   //dir_open_root가 아니라, 원하는 directory에서 open하도록 만들어야됨!
-  struct dir *dir = dir_open_root ();
-  
+      char file_name[strlen(name)+1];
+    struct dir *dir = parse_path(name, file_name,0);
+  // printf("filename : %s\n", file_name);
   struct inode *inode = NULL;
-
+  if(!strcmp(file_name,"rootdir")){
+    return file_open (inode_open (ROOT_DIR_SECTOR));
+  }
   if (dir != NULL){
     //dir에서 name에 해당하는 File의 inode를 리턴함
-    dir_lookup (dir, name, &inode);
+    dir_lookup (dir, file_name, &inode);
   }
+  
   dir_close (dir);
   return file_open (inode);
 }
@@ -105,6 +133,7 @@ do_format (void)
   free_map_create ();
   if (!dir_create (ROOT_DIR_SECTOR, 16))
     PANIC ("root directory creation failed");
+  thread_current()->dir_now = dir_open_root();
   free_map_close ();
   printf ("done.\n");
 }

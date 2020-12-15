@@ -5,7 +5,6 @@
 #include "filesys/filesys.h"
 #include "filesys/inode.h"
 #include "threads/malloc.h"
-
 /* A directory. */
 struct dir 
   {
@@ -26,7 +25,7 @@ struct dir_entry
 bool
 dir_create (block_sector_t sector, size_t entry_cnt)
 {
-  return inode_create (sector, entry_cnt * sizeof (struct dir_entry));
+  return inode_create (sector, entry_cnt * sizeof (struct dir_entry),1);
 }
 
 /* Opens and returns the directory for the given INODE, of which
@@ -74,6 +73,7 @@ dir_close (struct dir *dir)
       inode_close (dir->inode);
       free (dir);
     }
+  // printf("dir_close success\n");
 }
 
 /* Returns the inode encapsulated by DIR. */
@@ -123,7 +123,6 @@ dir_lookup (const struct dir *dir, const char *name,
             struct inode **inode) 
 {
   struct dir_entry e;
-
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
 
@@ -147,10 +146,8 @@ dir_add (struct dir *dir, const char *name, block_sector_t inode_sector)
   struct dir_entry e;
   off_t ofs;
   bool success = false;
-
   ASSERT (dir != NULL);
   ASSERT (name != NULL);
-
   /* Check NAME for validity. */
   if (*name == '\0' || strlen (name) > NAME_MAX)
     return false;
@@ -176,8 +173,8 @@ dir_add (struct dir *dir, const char *name, block_sector_t inode_sector)
   strlcpy (e.name, name, sizeof e.name);
   e.inode_sector = inode_sector;
   success = inode_write_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
-
  done:
+  // printf("dir_add success \n");
   return success;
 }
 
@@ -201,6 +198,7 @@ dir_remove (struct dir *dir, const char *name)
 
   /* Open inode. */
   inode = inode_open (e.inode_sector);
+
   if (inode == NULL)
     goto done;
 
@@ -225,7 +223,6 @@ bool
 dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
 {
   struct dir_entry e;
-
   while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e) 
     {
       dir->pos += sizeof e;
@@ -237,3 +234,179 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
     }
   return false;
 }
+
+struct dir* 
+parse_path (char *path_name, char *file_name,bool create) {
+    // printf("parse_path : %s\n",path_name);
+    struct dir *dir;
+    char *token,*savePtr,*next;
+    char path[strlen(path_name)+1];
+    bool check =false;
+    memcpy(path,path_name,strlen(path_name)+1);
+    if (path == NULL || strlen(path) == 0){
+      return NULL;
+    }
+
+
+    if (path[0] == '/'){
+      dir = dir_open_root();
+      token=strtok_r (path, "/", &savePtr); 
+      check=true;
+    }
+    else if (thread_current()->dir_now==NULL){
+      // printf("here\n");
+        dir = dir_open_root();
+    }
+
+    if(!strncmp(path,"..",2)){
+      dir=thread_current()->dir_now;
+      token=strtok_r (path, "/", &savePtr); 
+      check=true;
+    }
+    else if(!strncmp(path,".",1)){
+      dir=thread_current()->dir_now;
+      token=strtok_r (path, "/", &savePtr); 
+      check=true;
+    }
+    else{
+      dir=dir_reopen(thread_current()->dir_now);
+    }
+
+    if(!check)
+      token = strtok_r (path, "/", &savePtr);
+
+    while (token!=NULL) {
+      // printf("token = %s\n",token);
+      struct inode* inode=NULL;
+      next = strtok_r (NULL, "/", &savePtr);
+      // // printf("token = %s\n",next);
+
+      if(next==NULL){
+        if(dir_lookup(dir, token, &inode)){
+          if(create){
+            dir_close(dir);
+            return NULL;
+          }
+          else{
+              memcpy(file_name, token, strlen(token) + 1);
+              return dir;
+          }
+        }
+        else{
+          memcpy(file_name, token, strlen(token) + 1);
+          // printf("file_name = %s\n",file_name);
+          return dir;
+        }
+      }
+      else{
+        if(!dir_lookup(dir, token, &inode)){
+          if(!is_dir(inode)){
+            dir_close(dir);
+            return NULL;     
+          }
+        }
+      }
+      dir_close(dir);
+      dir = dir_open(inode);
+      token=next; 
+
+    }
+    // printf("here\n");
+    memcpy(file_name,"rootdir", strlen("rootdir") + 1);
+    // printf("file_name = %s\n",file_name);
+    return dir;
+}
+struct dir*
+find_dir(char* path_name){
+    struct dir *dir;
+    char *token,*savePtr,*next;
+    char path[strlen(path_name)+1];
+    memcpy(path,path_name,strlen(path_name)+1);
+    // if (path == NULL || strlen(path) == 0){
+    //   return NULL;
+    // }
+    if (path[0] == '/'||thread_current()->dir_now==NULL){
+        dir = dir_open_root();
+        // strtok_r (path_name, "/", &savePtr); 
+        // path_name = savePtr;
+    }
+    else{
+      dir=dir_reopen(thread_current()->dir_now);
+    }
+    token = strtok_r (path, "/", &savePtr); 
+
+    if(!strcmp(token,".")){
+      dir=thread_current()->dir_now;
+      token = strtok_r (NULL, "/", &savePtr);
+    }
+    else if(!strcmp(token,"..")){
+      //이부분 고쳐야댐
+      dir=thread_current()->dir_now;
+      token = strtok_r (NULL, "/", &savePtr);
+    }
+    while (token!=NULL) {
+      // printf("token = %s\n",token);
+      struct inode* inode=NULL;
+      // printf("token = %s\n",next);
+
+      if(!dir_lookup(dir, token, &inode)|| !is_dir(inode)) {
+            dir_close(dir);
+            return NULL;         
+        
+      }
+      dir_close(dir);
+      dir = dir_open(inode);
+            // printf("token = %s\n",token);
+
+      token = strtok_r (NULL, "/", &savePtr);
+    }
+    return dir;
+}
+
+
+// check_path(char* path){
+//     if (path == NULL ||strlen(path) == 0){
+//       return NULL;
+//     }
+
+//     if (path[0] == '/'{
+//         dir = dir_open_root();
+//         strtok_r (path_name, "/", &savePtr); 
+//         path = savePtr;
+//     }
+//     else if (thread_current()->dir_now==NULL){
+//         dir = dir_open_root();
+//     }
+//     else if(!strncmp(path,"..",2)){
+//       dir=thread_current()->dir_now;
+//       token = strtok_r (NULL, "/", &savePtr);
+//     }
+//     else if(!strcmp(token,".",1)){
+//       dir=thread_current()->dir_now;
+//       token = strtok_r (NULL, "/", &savePtr);
+//     }
+//     else{
+//       dir=dir_reopen(thread_current()->dir_now);
+//     }
+
+// }
+
+// tokenize(char* path){
+//   char *token, *next_ptr 
+//   int length=0;
+//   token=strtok_r(path,"/",&next_ptr);
+//   while(token){
+//     length++;
+//     token=strtok_r(NULL,"/",&next_ptr);
+//   }
+
+// }
+//   token = strtok_r(file_name," ", &next_ptr);
+//   argv[0] = token;
+//   while(token) 
+//   { 
+//     argc++;
+
+//     token = strtok_r(NULL, " ", &next_ptr); 
+//     argv[argc]=token;
+//   }

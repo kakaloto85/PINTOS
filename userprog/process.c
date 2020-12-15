@@ -57,9 +57,10 @@ process_execute (const char *file_name)
   char * realname;
   realname = strtok_r(fn_copy2," ", &next_ptr);
         // printf("real naem %s\n",realname);
+    struct list_elem* e;
           struct thread* child_thread;
-  struct list_elem* e;
 
+  // printf("start_process %d\n",thread_current()->tid);
   if(!list_empty(&thread_current()->child_exec_list)){
   for (e = list_begin(&thread_current()->child_exec_list); e != list_end(&thread_current()->child_exec_list); e = list_next(e)) {
       child_thread = list_entry(e, struct thread, child_exec_elem);
@@ -74,7 +75,7 @@ process_execute (const char *file_name)
   // }
   /* Create a new thread to execute FILE_NAME. */
   cur=thread_current();
-
+  
   tid = thread_create (realname, PRI_DEFAULT, start_process, fn_copy);
     // printf("exec : tid %d \n",tid);
   // free(realname);
@@ -102,13 +103,24 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  // printf("start_process %d\n",thread_current()->tid);
 
   init_spt(&(thread_current()->spt));
 
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+  //   struct list_elem* e;
+  //         struct thread* child_thread;
+
+  // // printf("start_process %d\n",thread_current()->tid);
+  // if(!list_empty(&thread_current()->child_exec_list)){
+  // for (e = list_begin(&thread_current()->child_exec_list); e != list_end(&thread_current()->child_exec_list); e = list_next(e)) {
+  //     child_thread = list_entry(e, struct thread, child_exec_elem);
+  //     if (!strcmp(child_thread->name,file_name)) {
+  //       sema_down(&sema);
+  //     }
+  //   }
+  // }
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -234,7 +246,7 @@ process_exit (void)
         munmap (list_entry(e,struct mmap_file,elem)->map_id);
     }
   }
-    
+
 
   // printf("here \n");
   // file_seek(cur->file,0);
@@ -246,6 +258,7 @@ process_exit (void)
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
+
   pd = cur->pagedir;
   if (pd != NULL) 
     {
@@ -261,9 +274,9 @@ process_exit (void)
       pagedir_destroy (pd);
     }
       sema_up(&parent->wait_lock);
-              sema_up(&sema);
                   list_remove(&thread_current()->child_exec_elem);
 
+                       sema_up(&sema);
 
 
 }

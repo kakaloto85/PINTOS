@@ -15,6 +15,7 @@
 #include "userprog/process.h"
 #include "vm/frame.h"
 #include "vm/page.h"
+#include "filesys/directory.h"
 
 #endif
 
@@ -200,8 +201,12 @@ thread_create (const char *name, int priority,
   tid = t->tid = allocate_tid ();
   t->parent=thread_current();
   list_push_back(&((t->parent)->child_wait_list),&t->child_list_elem);
-    list_push_back(&((t->parent)->child_exec_list),&t->child_exec_elem);
-
+  list_push_back(&((t->parent)->child_exec_list),&t->child_exec_elem);
+  if(thread_current()->dir_now==NULL){
+    t->dir_now =NULL;
+  }
+  else
+    t->dir_now=dir_reopen(thread_current()->dir_now);
 
   /*switch.s 에 cur로 안ㅇ들어갔는데 들어간 것처럼 가짜로 만들어놈*/
   /* Stack frame for kernel_thread(). */
@@ -359,13 +364,14 @@ thread_exit (void)
   // destroy_spt();
 
   process_exit ();
+    // printf("hi! 건우\n");
+
 #endif
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  // printf("hi! 건우\n");
   // sema_up(&parent->wait_lock);
     // thread_current()->parent=NULL;
   //   struct thread* t;
