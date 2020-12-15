@@ -69,10 +69,10 @@ process_execute (const char *file_name)
       }
     }
   }
-  // if (filesys_open(realname)==NULL){
-  //   printf("error2\n");
-  //   return -1;
-  // }
+  if (filesys_open(realname)==NULL){
+    printf("error2\n");
+    return -1;
+  }
   /* Create a new thread to execute FILE_NAME. */
   cur=thread_current();
   
@@ -229,15 +229,22 @@ process_exit (void)
 
   struct thread* parent = thread_current()->parent;
   uint32_t *pd;
+
   // struct list wait_list = (cur->parent)->child_wait_list;
-  for(int i=0;i<128;i++){
-    struct file* file_now = cur->fd_table[i];
-    // if ((file_now->deny_write) == true)
-    if(file_now!=NULL){
-      // munmap(i);
-      file_close(file_now);
-    }
-  }
+  //이걸 지웠는데 왜 될까..?
+  // for(int i=0;i<128;i++){
+  //   struct file* file_now = cur->fd_table[i];
+  //                 // printf("hi! 건우2\n");
+
+  //   // if ((file_now->deny_write) == true)
+  //   if(file_now!=NULL){
+  //     // munmap(i);
+  //             printf("hi! 건우\n");
+
+  //     file_close(file_now);
+  //   }
+  // }
+
   struct list_elem* e, *next;
   if(!list_empty(&thread_current()->mmap_list)){
     for(e=list_begin(&thread_current()->mmap_list);e!=list_end(&thread_current()->mmap_list);e=next){
@@ -255,7 +262,7 @@ process_exit (void)
           file_close(cur->file);
   }
   destroy_spt(thread_current());
-
+  dir_close(thread_current()->dir_now);
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
 
@@ -274,9 +281,9 @@ process_exit (void)
       pagedir_destroy (pd);
     }
       sema_up(&parent->wait_lock);
-                  list_remove(&thread_current()->child_exec_elem);
-
-                       sema_up(&sema);
+      list_remove(&thread_current()->child_exec_elem);
+      // cur->dir_now 
+      sema_up(&sema);
 
 
 }

@@ -364,7 +364,6 @@ thread_exit (void)
   // destroy_spt();
 
   process_exit ();
-    // printf("hi! 건우\n");
 
 #endif
   /* Remove thread from all threads list, set our status to dying,

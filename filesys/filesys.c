@@ -29,6 +29,7 @@ filesys_init (bool format)
     do_format ();
   // printf("hi 1 \n");
   free_map_open ();
+  // thread_current()->dir_now = dir_open_root();
 }
 
 /* Shuts down the file system module, writing any unwritten data
@@ -37,6 +38,7 @@ void
 filesys_done (void) 
 {
   buffer_flush_all();
+  // flush_all();
   free_map_close ();
 }
 
@@ -62,10 +64,35 @@ filesys_create (const char *name, off_t initial_size)
                   && dir_add (dir, file_name, inode_sector));
   if (!success && inode_sector != 0) 
     free_map_release (inode_sector, 1);
+  // else
+  //   write_back(dir_get_inode(dir));
+
   dir_close (dir);
   // printf("filesys_create success\n");
   return success;
 }
+// bool
+// filesys_create_dir (const char *name) {
+//     // char directory[strlen(name)];
+//       block_sector_t inode_sector = 0;
+    
+
+//     char file_name[strlen(name)+1];
+//     struct dir *dir = parse_path(name, file_name,1);
+//     // printf("dir returned /n");
+//     bool success = (dir != NULL
+//                   && free_map_allocate (1, &inode_sector)
+//                   && dir_create (inode_sector, 0)
+//                   && dir_add (dir, file_name, inode_sector))
+//                   && dir_add (dir_open(inode_open(inode_sector)), '..', inode_get_inumber(dir_get_inode(dir)))
+//                   && dir_add (dir_open(inode_open(inode_sector)), '.', inode_sector);
+//     if (!success && inode_sector != 0) 
+//         free_map_release (inode_sector, 1);
+//     if(dir!=NULL)
+//       dir_close (dir);
+    
+//     return success;
+// }
 bool
 filesys_create_dir (const char *name) {
     // char directory[strlen(name)];
@@ -80,6 +107,9 @@ filesys_create_dir (const char *name) {
                   && dir_add (dir, file_name, inode_sector));
     if (!success && inode_sector != 0) 
         free_map_release (inode_sector, 1);
+    // else
+    //   write_back(dir_get_inode(dir));
+
     if(dir!=NULL)
       dir_close (dir);
     
@@ -118,7 +148,13 @@ filesys_open (const char *name)
 bool
 filesys_remove (const char *name) 
 {
+  // char file_name[strlen(name)+1];
   struct dir *dir = dir_open_root ();
+  // struct dir* dir = parse_path(name, file_name,0);
+
+  // struct inode *inode = NULL;
+  // if(dir_lookup(dir, name, inode) && is_dir(inode))
+  //   dir_readdir(i)
   bool success = dir != NULL && dir_remove (dir, name);
   dir_close (dir); 
 
@@ -134,6 +170,21 @@ do_format (void)
   if (!dir_create (ROOT_DIR_SECTOR, 16))
     PANIC ("root directory creation failed");
   thread_current()->dir_now = dir_open_root();
+  // dir_add(dir_open_root(), '..', NULL);  // 이거는 NULL로 해야할수도
+  // printf("before adding \n");
+  // dir_add(dir_open_root(),'.', ROOT_DIR_SECTOR);
+  // dir_close(dir_open_root());
   free_map_close ();
   printf ("done.\n");
 }
+// static void
+// do_format (void)
+// {
+//   printf ("Formatting file system...");
+//   free_map_create ();
+//   if (!dir_create (ROOT_DIR_SECTOR, 16))
+//     PANIC ("root directory creation failed");
+//   thread_current()->dir_now = dir_open_root();
+//   free_map_close ();
+//   printf ("done.\n");
+// }

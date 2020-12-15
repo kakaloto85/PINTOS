@@ -50,5 +50,7 @@ void buffer_write(struct bce* cache, uint8_t *buffer, off_t bytes_written, int s
 // void make_indirect_sec_table(struct inode_disk* disk_inode, size_t sectors,const void * zeros,bool* success);
 // void make_double_indirect_sec_table(struct inode_disk* disk_inode, size_t sectors,const void * zeros,bool* success);
 bool is_dir(const struct inode* inode);
+void write_back(struct inode* inode);
+void flush_all(void);
 
 #endif /* filesys/inode.h */

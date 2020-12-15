@@ -53,6 +53,7 @@ dir_open (struct inode *inode)
 struct dir *
 dir_open_root (void)
 {
+  // printf("open root\n");
   return dir_open (inode_open (ROOT_DIR_SECTOR));
 }
 
@@ -169,6 +170,7 @@ dir_add (struct dir *dir, const char *name, block_sector_t inode_sector)
       break;
 
   /* Write slot. */
+  // printf("before writing");
   e.in_use = true;
   strlcpy (e.name, name, sizeof e.name);
   e.inode_sector = inode_sector;
@@ -234,7 +236,74 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
     }
   return false;
 }
+// struct dir* 
+// parse_path (char *path_name, char *file_name,bool create) {
+//     // printf("parse_path : %s\n",path_name);
+//     struct dir *dir;
+//     char *token,*savePtr,*next;
+//     char path[strlen(path_name)+1];
+//     bool check =false;
+//     memcpy(path,path_name,strlen(path_name)+1);
+//     if (path == NULL || file_name == NULL || strlen(path) == 0){
+//       return NULL;
+//     }
+//     printf("file_name at start is %s \n", path_name);
+//     token = strtok_r (path, "/", &savePtr);
+//     printf("parse_path_1 \n");
+//     printf("name is %s \n", token);
+//     if (path[0] == '/'){
+//       dir = dir_open_root();
+//       token=strtok_r (path, "/", &savePtr); 
+//       check=true;
+//     }
+//     else if (thread_current()->dir_now==NULL){
+//       // printf("here\n");
+//         dir = dir_open_root();
+//     }
+//     else
+//       dir = thread_current()->dir_now;
 
+//     while (token!=NULL) {
+//       // printf("token = %s\n",token);
+//       struct inode* inode=NULL;
+//       next = strtok_r (NULL, "/", &savePtr);
+//       printf("token = %s\n",next);
+
+//       if(next==NULL){
+//         if(dir_lookup(dir, token, &inode)){
+//           if(!create){
+//             dir_close(dir);
+//             return NULL;
+//           }
+//           else{
+//               memcpy(file_name, token, strlen(token) + 1);
+//               return dir;
+//           }
+//         }
+//         else{
+//           memcpy(file_name, token, strlen(token) + 1);
+//           printf("file_name = %s\n",file_name);
+//           return dir;
+//         }
+//       }
+//       else{
+//         if(!dir_lookup(dir, token, &inode)){
+//           if(!is_dir(inode)){
+//             dir_close(dir);
+//             return NULL;     
+//           }
+//         }
+//       }
+//       dir_close(dir);
+//       dir = dir_open(inode);
+//       token=next; 
+//     }
+
+//     // printf("here\n");
+//     memcpy(file_name,"rootdir", strlen("rootdir") + 1);
+//     // printf("file_name = %s\n",file_name);
+//     return dir;
+// }
 struct dir* 
 parse_path (char *path_name, char *file_name,bool create) {
     // printf("parse_path : %s\n",path_name);
@@ -253,7 +322,7 @@ parse_path (char *path_name, char *file_name,bool create) {
       token=strtok_r (path, "/", &savePtr); 
       check=true;
     }
-    else if (thread_current()->dir_now==NULL){
+    if (thread_current()->dir_now==NULL){
       // printf("here\n");
         dir = dir_open_root();
     }
