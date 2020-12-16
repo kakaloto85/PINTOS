@@ -307,7 +307,7 @@ int open (const char *file){
   int fd;
   sema_down(&file_lock);
   opened_file = filesys_open (file);
-        // printf("open %s\n",file);
+        // printf("open %s\n",opened_file);
   // sema_up(&file_lock);
   if(opened_file==NULL){
     sema_up(&file_lock);

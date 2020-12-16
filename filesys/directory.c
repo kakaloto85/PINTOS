@@ -198,15 +198,27 @@ dir_remove (struct dir *dir, const char *name)
   /* Find directory entry. */
   if (!lookup (dir, name, &e, &ofs))
     goto done;
-  // if (!strcmp(e.name,".")||!strcmp(e.name,".."))
-  //   goto done;  //jy 추가
+  if (!strcmp(e.name,".")||!strcmp(e.name,".."))
+    goto done;  //jy 추가
   /* Open inode. */
   inode = inode_open (e.inode_sector);
   
   if (inode == NULL)
     goto done;
-  if (is_dir(inode))
-    goto done;
+  if (is_dir(inode)) {
+    // printf("is_dir\n");
+    if(thread_current()->dir_now!=NULL){
+      if(get_sector(dir_get_inode(thread_current()->dir_now))==get_sector(inode)){
+        goto done;
+      }
+    }
+    if(check_open(inode))
+      goto done;
+    char name[NAME_MAX + 1];
+    if(dir_readdir(dir_open(inode),name))
+      goto done;
+  }
+
   /* Erase directory entry. */
   e.in_use = false;
   if (inode_write_at (dir->inode, &e, sizeof e, ofs) != sizeof e) 
@@ -218,6 +230,7 @@ dir_remove (struct dir *dir, const char *name)
 
  done:
   inode_close (inode);
+  // printf("here\n");
   return success;
 }
 
@@ -232,7 +245,7 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
   struct dir_entry e;
   while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e) 
     {
-        // printf("dir_readdir : %s\n",e.name);
+        printf("dir_readdir : %s\n",e.name);
 
       if(strcmp(e.name,".")&&strcmp(e.name,"..")){
         dir->pos += sizeof e;
@@ -294,6 +307,7 @@ parse_path (char *path_name, char *file_name,bool create) {
             return NULL;
           }
           else{
+              
               memcpy(file_name, token, strlen(token) + 1);
               return dir;
           }
@@ -307,10 +321,12 @@ parse_path (char *path_name, char *file_name,bool create) {
       else{
         if(!dir_lookup(dir, token, &inode)){
           // printf("parse_path: no dir \n");
-          if(!is_dir(inode)){
+          // if(!is_dir(inode)){
+                      // printf("parse_path: no dir \n");
+
             dir_close(dir);
             return NULL;     
-          }
+          // }
         }
       }
 

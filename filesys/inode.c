@@ -929,3 +929,10 @@ for(e=list_begin(&open_inodes);e!=list_tail(&open_inodes);e=list_next(e)){
 
 
 }
+bool
+check_open(struct inode* inode){
+  if(inode->open_cnt>2)
+    return true;
+  else
+    return false;
+}

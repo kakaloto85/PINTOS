@@ -44,7 +44,6 @@ main (int argc, const char *argv[])
           ofs += bytes_read;
         }
     }
-    printf("here\n");
   close (fd);
   return child_idx;
 }

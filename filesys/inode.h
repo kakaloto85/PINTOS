@@ -52,5 +52,6 @@ void buffer_write(struct bce* cache, uint8_t *buffer, off_t bytes_written, int s
 bool is_dir(const struct inode* inode);
 void write_back(struct inode* inode);
 void flush_all(void);
+bool check_open(struct inode* inode);
 
 #endif /* filesys/inode.h */

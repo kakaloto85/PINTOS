@@ -139,6 +139,7 @@ filesys_create_dir (const char *name) {
 struct file *
 filesys_open (const char *name)
 {
+  // printf("open\n");
   //dir_open_root가 아니라, 원하는 directory에서 open하도록 만들어야됨!
       char file_name[strlen(name)+1];
     struct dir *dir = parse_path(name, file_name,0);
@@ -157,9 +158,15 @@ filesys_open (const char *name)
   if(strlen(file_name)==0||strlen(file_name)>14){
     return NULL;
   }
-  // if (is_dir(inode))
+  // 비어있는 것ㅇ을 열려하면 문제가 생기게
+  // if (inode== NULL)
   //   return NULL;  // 추가했는데 고쳐야할듯..
   // else
+  // struct file * file =file_open(inode);
+  // if (file == NULL)
+  //   exit(-1);
+  // else
+  //   return file; => file_open에 구현이 되어있다... 근데 왜 open 이 성공하는 것으로 나오지?
     return file_open (inode);
 }
 
