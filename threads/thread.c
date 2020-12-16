@@ -201,7 +201,7 @@ thread_create (const char *name, int priority,
   tid = t->tid = allocate_tid ();
   t->parent=thread_current();
   list_push_back(&((t->parent)->child_wait_list),&t->child_list_elem);
-  list_push_back(&((t->parent)->child_exec_list),&t->child_exec_elem);
+  // list_push_back(&((t->parent)->child_exec_list),&t->child_exec_elem);
   if(thread_current()->dir_now==NULL){
     t->dir_now =NULL;
   }

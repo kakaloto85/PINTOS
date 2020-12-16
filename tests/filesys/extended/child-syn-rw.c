@@ -22,7 +22,6 @@ main (int argc, const char *argv[])
   int child_idx;
   int fd;
   size_t ofs;
-
   test_name = "child-syn-rw";
   quiet = true;
   CHECK (argc == 2, "argc must be 2, actually %d", argc);
@@ -45,6 +44,7 @@ main (int argc, const char *argv[])
           ofs += bytes_read;
         }
     }
+    printf("here\n");
   close (fd);
   return child_idx;
 }

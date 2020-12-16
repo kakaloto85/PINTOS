@@ -479,7 +479,7 @@ inode_open (block_sector_t sector)
           return inode; 
         }
     }
-
+  // printf("inode_open\n");
   /* Allocate memory. */
   inode = malloc (sizeof *inode);
   if (inode == NULL)
@@ -534,7 +534,7 @@ inode_close (struct inode *inode)
   if (--inode->open_cnt == 0)
     {
                 // printf("here...?\n");
-
+      // printf("inode_close\n");
       /* Remove from inode list and release lock. */
       list_remove (&inode->elem);
  

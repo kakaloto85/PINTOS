@@ -195,12 +195,14 @@ int wait (tid_t pid){
 
 bool create (const char *file, unsigned initial_size){
   /* Check the validity of file */
+    // printf("create\n");
 
   if(file==NULL||*file==NULL){
     exit(-1);
   }
   //filesys_create에 아래 조건문 넣기!
   else if(strlen(file)==0||strlen(file)>14){
+    // printf("here\n");
     return 0;
     // sema_up(&file_lock);
   }
@@ -265,6 +267,7 @@ int write (int fd, const void *buffer, unsigned size){
 }
 
 int read (int fd, void *buffer, unsigned size){
+  // printf("read\n");
   /* check the validity of buffer pointer */
   check_user_sp(buffer);
 
@@ -294,9 +297,7 @@ int open (const char *file){
     exit(-1);
   }
   /* Length of file name should be 1 to 13 */
-  else if(strlen(file)==0||strlen(file)>14){
-    return -1;
-  }
+  //이 코드를 filesys_open안으로 넣어야할듯!
   /* lock for file synchronization */
   // sema_down(&file_lock);
   // printf("filename=%s\n",file);
@@ -537,7 +538,6 @@ bool chdir(const char *dir) {
   struct dir *dir_now = find_dir(dir);
   if(dir_now==NULL)
     return false;
-  // printf("here\n");
   thread_current()->dir_now = dir_now;
   return true;
 }
@@ -557,8 +557,12 @@ bool readdir (int fd, const char *name) {
   struct file* file = thread_current()->fd_table[fd];   
  if (is_dir(file->inode)) {
   struct dir* dir = dir_open(file->inode);
-  return dir_readdir(dir, name);
+  bool result =dir_readdir(dir, name);
+  dir_close(dir);
+  return result;
  }
+ else
+  return false;
 }
 // 
 // 

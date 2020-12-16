@@ -48,6 +48,7 @@ static bool do_write (int fd, const char *buffer, int size, bool *write_error);
 static bool
 make_tar_archive (const char *archive_name, char *files[], size_t file_cnt) 
 {
+  // printf("make_tar_archive %s, file count %d\n",archive_name,file_cnt);
   static const char zeros[512];
   int archive_fd;
   bool success = true;
@@ -69,7 +70,8 @@ make_tar_archive (const char *archive_name, char *files[], size_t file_cnt)
   for (i = 0; i < file_cnt; i++) 
     {
       char file_name[128];
-      
+        // printf("make_tar_archive file name %s\n",files[i]);
+
       strlcpy (file_name, files[i], sizeof file_name);
       if (!archive_file (file_name, sizeof file_name,
                          archive_fd, &write_error))
@@ -89,7 +91,11 @@ static bool
 archive_file (char file_name[], size_t file_name_size,
               int archive_fd, bool *write_error) 
 {
+  // printf("archive_file\n");
   int file_fd = open (file_name);
+  // printf("fd=%d\n",file_fd);
+  //   printf("fd=%s\n",file_name);
+
   if (file_fd >= 0) 
     {
       bool success;
@@ -124,10 +130,11 @@ static bool
 archive_ordinary_file (const char *file_name, int file_fd,
                        int archive_fd, bool *write_error)
 {
+  // printf("archive_ordinary_file\n");
   bool read_error = false;
   bool success = true;
   int file_size = filesize (file_fd);
-
+  // printf("archive_ordinary_file %s\n",file_name);
   if (!write_header (file_name, USTAR_REGULAR, file_size,
                      archive_fd, write_error))
     return false;
@@ -160,13 +167,13 @@ static bool
 archive_directory (char file_name[], size_t file_name_size, int file_fd,
                    int archive_fd, bool *write_error)
 {
+  // printf("archive_directory file name%s\n",file_name);
   size_t dir_len;
   bool success = true;
-
   dir_len = strlen (file_name);
   if (dir_len + 1 + READDIR_MAX_LEN + 1 > file_name_size) 
     {
-      printf ("%s: file name too long\n", file_name);
+      // printf ("%s: file name too long\n", file_name);
       return false;
     }
 
@@ -194,6 +201,7 @@ write_header (const char *file_name, enum ustar_type type, int size,
 static bool
 do_write (int fd, const char *buffer, int size, bool *write_error) 
 {
+  // printf("do wirte\n");
   if (write (fd, buffer, size) == size) 
     return true;
   else

@@ -61,16 +61,16 @@ process_execute (const char *file_name)
           struct thread* child_thread;
 
   // printf("start_process %d\n",thread_current()->tid);
-  if(!list_empty(&thread_current()->child_exec_list)){
-  for (e = list_begin(&thread_current()->child_exec_list); e != list_end(&thread_current()->child_exec_list); e = list_next(e)) {
-      child_thread = list_entry(e, struct thread, child_exec_elem);
-      if (!strcmp(child_thread->name,realname)) {
-        sema_down(&sema);
-      }
-    }
-  }
+  // if(!list_empty(&thread_current()->child_exec_list)){
+  // for (e = list_begin(&thread_current()->child_exec_list); e != list_end(&thread_current()->child_exec_list); e = list_next(e)) {
+  //     child_thread = list_entry(e, struct thread, child_exec_elem);
+  //     if (!strcmp(child_thread->name,realname)) {
+  //       sema_down(&sema);
+  //     }
+  //   }
+  // }
   if (filesys_open(realname)==NULL){
-    printf("error2\n");
+    // printf("error2\n");
     return -1;
   }
   /* Create a new thread to execute FILE_NAME. */
@@ -109,18 +109,20 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
-  //   struct list_elem* e;
-  //         struct thread* child_thread;
+    struct list_elem* e;
+          struct thread* child_thread;
 
-  // // printf("start_process %d\n",thread_current()->tid);
-  // if(!list_empty(&thread_current()->child_exec_list)){
-  // for (e = list_begin(&thread_current()->child_exec_list); e != list_end(&thread_current()->child_exec_list); e = list_next(e)) {
-  //     child_thread = list_entry(e, struct thread, child_exec_elem);
-  //     if (!strcmp(child_thread->name,file_name)) {
-  //       sema_down(&sema);
-  //     }
-  //   }
-  // }
+  // printf("start_process %d\n",thread_current()->tid);
+  if(!list_empty(&thread_current()->parent->child_exec_list)){
+  for (e = list_begin(&thread_current()->parent->child_exec_list); e != list_end(&thread_current()->parent->child_exec_list); e = list_next(e)) {
+      // printf("here\n");
+      child_thread = list_entry(e, struct thread, child_exec_elem);
+      if (!strcmp(child_thread->name,file_name)) {
+        // printf("here2\n");
+        sema_down(&sema);
+      }
+    }
+  }
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -146,7 +148,7 @@ start_process (void *file_name_)
 
   if(success){
         // printf("load_succesed\n");
-
+    list_push_back(&((thread_current()->parent)->child_exec_list),&thread_current()->child_exec_elem);
     parse_stack(argv, argc, &if_.esp);
     palloc_free_page (file_name);
 
