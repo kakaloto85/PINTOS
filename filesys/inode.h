@@ -28,7 +28,6 @@ struct bce
     {
         struct list_elem elem;
         block_sector_t sector_idx;
-        // struct thread *thread;
         struct inode* inode;
         void* buffercache;
         bool dirty;
@@ -53,5 +52,6 @@ bool is_dir(const struct inode* inode);
 void write_back(struct inode* inode);
 void flush_all(void);
 bool check_open(struct inode* inode);
+off_t bring_inode_pos(struct inode* inode);
 
 #endif /* filesys/inode.h */

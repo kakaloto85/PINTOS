@@ -19,7 +19,29 @@ struct dir_entry
     char name[NAME_MAX + 1];            /* Null terminated file name. */
     bool in_use;                        /* In use or free? */
   };
+struct inode_disk
+  {
+    bool dir_flag;
+    off_t length;
+    unsigned magic;
+    block_sector_t direct_table[123];
+    block_sector_t indirect_sec;
+    block_sector_t double_indirect_sec;
+  };
 
+/* In-memory inode. */
+struct inode 
+  {
+    struct list_elem elem;              /* Element in inode list. */
+    block_sector_t sector;              /* Sector number of disk location. */
+    int open_cnt;                       /* Number of openers. */
+    bool removed;                       /* True if deleted, false otherwise. */
+    int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
+    struct inode_disk data;             /* Inode content. */
+    struct lock write_lock;
+    int read;
+    off_t pos;
+  };
 /* Creates a directory with space for ENTRY_CNT entries in the
    given SECTOR.  Returns true if successful, false on failure. */
 bool
@@ -33,11 +55,13 @@ dir_create (block_sector_t sector, size_t entry_cnt)
 struct dir *
 dir_open (struct inode *inode) 
 {
+  // printf("dir_open\n");
   struct dir *dir = calloc (1, sizeof *dir);
   if (inode != NULL && dir != NULL && is_dir(inode))
     {
       dir->inode = inode;
-      dir->pos = 0;
+      dir->pos = bring_inode_pos(dir->inode);
+      // dir->pos = 2*sizeof (struct dir_entry);
       return dir;
     }
   else
@@ -241,18 +265,19 @@ bool
 dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
 {
           // printf("dir_readdir : %s\n",name);
-
+  // printf("dir_inumber: %d \n", inode_get_inumber(dir_get_inode(dir)));
   struct dir_entry e;
   while (inode_read_at (dir->inode, &e, sizeof e, dir->pos) == sizeof e) 
     {
-        printf("dir_readdir : %s\n",e.name);
-
+        // printf("dir_readdir : %s\n",e.name);
       if(strcmp(e.name,".")&&strcmp(e.name,"..")){
         dir->pos += sizeof e;
         if (e.in_use)
           {
             strlcpy (name, e.name, NAME_MAX + 1);
-
+            struct inode* inode = dir_get_inode(dir);
+            inode->pos = dir->pos;
+            // printf("dir pos is : %d \n", dir->pos);
             return true;
           } 
       }
@@ -261,7 +286,8 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
       }
 
     }
-
+  // printf("dir pos is : %d \n", dir->pos);
+  dir->inode->pos = dir->pos;
   return false;
 }
 struct dir* 
@@ -290,7 +316,12 @@ parse_path (char *path_name, char *file_name,bool create) {
     }
     else{
       // printf("here\n");
+      // inode_close(dir_get_inode(thread_current()->dir_now));
+      // inode_open(thread_current()->dir_now)
       dir = dir_reopen(thread_current()->dir_now);
+            // printf("parse_path %d\n",inode_get_inumber(dir_get_inode(dir)));
+
+      // dir = dir_reopen(thread_current()->dir_now);
     }
     if(!check)
       token = strtok_r (path, "/", &savePtr);
@@ -449,7 +480,8 @@ find_dir(char* path_name){
     }
     else{
       // printf("here\n");
-      dir = thread_current()->dir_now;
+      dir = dir_reopen(thread_current()->dir_now);
+      // printf("find_dir %d\n",inode_get_inumber(dir_get_inode(dir)));
     }
     if(!check)
       token = strtok_r (path, "/", &savePtr);

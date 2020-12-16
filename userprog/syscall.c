@@ -535,6 +535,7 @@ munmap(int mid){
 }
 
 bool chdir(const char *dir) {
+  // printf("chdir : %s\n",dir);
   struct dir *dir_now = find_dir(dir);
   if(dir_now==NULL)
     return false;
@@ -556,7 +557,11 @@ bool isdir (int fd) {
 bool readdir (int fd, const char *name) {
   struct file* file = thread_current()->fd_table[fd];   
  if (is_dir(file->inode)) {
-  struct dir* dir = dir_open(file->inode);
+  struct inode* inode = file->inode;
+  // if (check_open(inode)) {
+  //   inode_close(inode);
+  // }
+  struct dir* dir = dir_open(inode);
   bool result =dir_readdir(dir, name);
   dir_close(dir);
   return result;

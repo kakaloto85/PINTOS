@@ -27,7 +27,6 @@ struct inode_disk
     block_sector_t direct_table[123];
     block_sector_t indirect_sec;
     block_sector_t double_indirect_sec;
-    // char unused[3];
   };
 
 /* In-memory inode. */
@@ -41,7 +40,7 @@ struct inode
     struct inode_disk data;             /* Inode content. */
     struct lock write_lock;
     int read;
-    // int level;
+    off_t pos;
   };
 struct semaphore cache_lock;
 void func_write_behind(void){
@@ -104,14 +103,12 @@ bce_alloc (block_sector_t sector_idx,struct inode* inode){
   sema_down(&cache_lock);
   struct bce* bce;
   if (list_size(&cache_sector_list)==64){
-    // printf("full\n");
     bce= find_victim_cache();
     if(bce->dirty){
         buffer_flush(bce);
     }
     bce->sector_idx=sector_idx;
     bce->inode=inode;
-    // bce->thread=thread_current();
     bce->accessed=0;
     } 
   else {
@@ -491,6 +488,7 @@ inode_open (block_sector_t sector)
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
   inode->removed = false;
+  inode->pos = 0;
   //block read 맞을까?
   block_read (fs_device, inode->sector, &inode->data);
       //   struct bce* inode_disk_cache=bce_alloc(inode->sector,inode);
@@ -526,6 +524,8 @@ void
 inode_close (struct inode *inode) 
 {
   // printf("inode close %d\n",inode->sector);
+  // printf("inode close %d\n",inode->open_cnt);
+
   /* Ignore null pointer. */
   if (inode == NULL)
     return;
@@ -535,6 +535,7 @@ inode_close (struct inode *inode)
     {
                 // printf("here...?\n");
       // printf("inode_close\n");
+      inode->pos = 0;
       /* Remove from inode list and release lock. */
       list_remove (&inode->elem);
  
@@ -921,10 +922,9 @@ write_back(struct inode* inode){
 
 void
 flush_all(void){
-struct list_elem* e;
-for(e=list_begin(&open_inodes);e!=list_tail(&open_inodes);e=list_next(e)){
-  write_back(list_entry(e,struct inode,elem));
-
+  struct list_elem* e;
+  for(e=list_begin(&open_inodes);e!=list_tail(&open_inodes);e=list_next(e)){
+    write_back(list_entry(e,struct inode,elem));
 }
 
 
@@ -936,3 +936,11 @@ check_open(struct inode* inode){
   else
     return false;
 }
+off_t
+bring_inode_pos(struct inode* inode) {
+  return inode->pos;
+}
+
+// set_inode_pos(struct inode* inode, off_t pos) {
+//   return inode->pos = pos;
+// }

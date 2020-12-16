@@ -71,7 +71,7 @@ filesys_create (const char *name, off_t initial_size)
   // printf("filesys_create success\n");
   return success;
 }
-// bool
+bool
 filesys_create_dir (const char *name) {
     // char directory[strlen(name)];
       block_sector_t inode_sector = 0;
@@ -90,13 +90,18 @@ filesys_create_dir (const char *name) {
     // printf("inode_get_inumber:%d\n",inode_get_inumber(dir_get_inode(dir)));
     if (success) {
       // printf("here\n");
-          cur_dir=dir_open(inode_open(inode_sector));
+      cur_dir=dir_open(inode_open(inode_sector));
+      dir_add (cur_dir, "..", inode_get_inumber(dir_get_inode(dir)));
+      dir_add (cur_dir, ".", inode_sector);
+      // write_back(dir_get_inode(cur_dir));
+      dir_close (cur_dir); 
+      // if(thread_current()->dir_now!=NULL){
+      //   if(inode_get_inumber(dir_get_inode(thread_current()->dir_now))==inode_get_inumber(dir_get_inode(dir))){
+      //             printf("here\n");
 
-          dir_add (cur_dir, "..", inode_get_inumber(dir_get_inode(dir)));
-    dir_add (cur_dir, ".", inode_sector);
-    // write_back(dir_get_inode(cur_dir));
-    dir_close (cur_dir); 
-
+      //     thread_current()->dir_now=dir;
+      //   }
+      // }
     }
 
     if (!success && inode_sector != 0) 
@@ -143,6 +148,7 @@ filesys_open (const char *name)
   //dir_open_root가 아니라, 원하는 directory에서 open하도록 만들어야됨!
       char file_name[strlen(name)+1];
     struct dir *dir = parse_path(name, file_name,0);
+    // printf("filesys_open dir: sector_number: %d \n", inode_get_inumber(dir_get_inode(dir)));
   // printf("filename : %s\n", file_name);
   // memcpy(name,file_name,strlen(name)+1);
   struct inode *inode = NULL;
