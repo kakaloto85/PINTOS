@@ -543,6 +543,8 @@ bool chdir(const char *dir) {
   return true;
 }
 bool mkdir (const char *dir) {
+    // printf("mkdir : %s\n",dir);
+
   // sema_down(&file_lock);
   bool success;
   success=filesys_create_dir(dir);
@@ -555,6 +557,8 @@ bool isdir (int fd) {
   return is_dir(file->inode);
 }
 bool readdir (int fd, const char *name) {
+      // printf("readdir : %s\n");
+
   struct file* file = thread_current()->fd_table[fd];   
  if (is_dir(file->inode)) {
   struct inode* inode = file->inode;
@@ -563,7 +567,7 @@ bool readdir (int fd, const char *name) {
   // }
   struct dir* dir = dir_open(inode);
   bool result =dir_readdir(dir, name);
-  dir_close(dir);
+  // dir_close(dir);
   return result;
  }
  else

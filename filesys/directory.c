@@ -292,8 +292,7 @@ dir_readdir (struct dir *dir, char name[NAME_MAX + 1])
 }
 struct dir* 
 parse_path (char *path_name, char *file_name,bool create) {
-    // printf("%d\n",create);
-    // printf("parse_path : %s\n",path_name);
+    // printf("parse_path : %s %d\n",path_name,create);
     struct dir *dir;
     char *token,*savePtr,*next;
     char path[strlen(path_name)+1];
@@ -326,7 +325,7 @@ parse_path (char *path_name, char *file_name,bool create) {
     if(!check)
       token = strtok_r (path, "/", &savePtr);
     while (token!=NULL) {
-      // printf("token = %s\n",token);
+      // printf("parse_path token = %s\n",token);
       struct inode* inode=NULL;
       next = strtok_r (NULL, "/", &savePtr);
       // printf("token = %s\n",next);
@@ -374,89 +373,10 @@ parse_path (char *path_name, char *file_name,bool create) {
     // printf("file_name = %s\n",file_name);
     return dir;
 }
-// struct dir* 
-// parse_path (char *path_name, char *file_name,bool create) {
-//     // printf("parse_path : %s\n",path_name);
-//     struct dir *dir;
-//     char *token,*savePtr,*next;
-//     char path[strlen(path_name)+1];
-//     bool check =false;
-//     memcpy(path,path_name,strlen(path_name)+1);
-//     if (path == NULL || strlen(path) == 0){
-//       return NULL;
-//     }
 
-
-//     if (path[0] == '/'){
-//       dir = dir_open_root();
-//       token=strtok_r (path, "/", &savePtr); 
-//       check=true;
-//     }
-//     if (thread_current()->dir_now==NULL){
-//       // printf("here\n");
-//         dir = dir_open_root();
-//     }
-
-//     if(!strncmp(path,"..",2)){
-//       dir=thread_current()->dir_now;
-//       token=strtok_r (path, "/", &savePtr); 
-//       check=true;
-//     }
-//     else if(!strncmp(path,".",1)){
-//       dir=thread_current()->dir_now;
-//       token=strtok_r (path, "/", &savePtr); 
-//       check=true;
-//     }
-//     else{
-//       dir=dir_reopen(thread_current()->dir_now);
-//     }
-
-//     if(!check)
-//       token = strtok_r (path, "/", &savePtr);
-
-//     while (token!=NULL) {
-//       // printf("token = %s\n",token);
-//       struct inode* inode=NULL;
-//       next = strtok_r (NULL, "/", &savePtr);
-//       // // printf("token = %s\n",next);
-
-//       if(next==NULL){
-//         if(dir_lookup(dir, token, &inode)){
-//           if(create){
-//             dir_close(dir);
-//             return NULL;
-//           }
-//           else{
-//               memcpy(file_name, token, strlen(token) + 1);
-//               return dir;
-//           }
-//         }
-//         else{
-//           memcpy(file_name, token, strlen(token) + 1);
-//           // printf("file_name = %s\n",file_name);
-//           return dir;
-//         }
-//       }
-//       else{
-//         if(!dir_lookup(dir, token, &inode)){
-//           if(!is_dir(inode)){
-//             dir_close(dir);
-//             return NULL;     
-//           }
-//         }
-//       }
-//       dir_close(dir);
-//       dir = dir_open(inode);
-//       token=next; 
-
-//     }
-//     // printf("here\n");
-//     memcpy(file_name,"rootdir", strlen("rootdir") + 1);
-//     // printf("file_name = %s\n",file_name);
-//     return dir;
-// }
 struct dir*
 find_dir(char* path_name){
+  // printf("find_dir %s\n", path_name);
     struct dir *dir;
     char *token,*savePtr,*next;
     char path[strlen(path_name)+1];
@@ -486,7 +406,7 @@ find_dir(char* path_name){
     if(!check)
       token = strtok_r (path, "/", &savePtr);
     while (token!=NULL) {
-      // printf("token = %s\n",token);
+      // printf("find_dir token = %s\n",token);
       struct inode* inode=NULL;
       // printf("token = %s\n",next);
 

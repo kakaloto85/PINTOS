@@ -473,6 +473,9 @@ inode_open (block_sector_t sector)
       if (inode->sector == sector) 
         {
           inode_reopen (inode);
+          // printf("inode open2 sector: %d\n",inode->sector);
+          // printf("inode open2 cnt: %d\n",inode->open_cnt);
+
           return inode; 
         }
     }
@@ -497,6 +500,9 @@ inode_open (block_sector_t sector)
 
   lock_init(&inode->write_lock);
   inode->read = inode->data.length;
+          //   printf("inode open sector: %d\n",inode->sector);
+          // printf("inode open cnt: %d\n",inode->open_cnt);
+
   // printf("after open inode length: %d \n",inode->data.length);
   return inode;
 }
@@ -505,6 +511,9 @@ inode_open (block_sector_t sector)
 struct inode *
 inode_reopen (struct inode *inode)
 {
+  // printf("inode reopen sector: %d\n",inode->sector);
+  // printf("inode reopen cnt: %d\n",inode->open_cnt);
+
   if (inode != NULL)
     inode->open_cnt++;
   return inode;
@@ -523,8 +532,8 @@ inode_get_inumber (const struct inode *inode)
 void
 inode_close (struct inode *inode) 
 {
-  // printf("inode close %d\n",inode->sector);
-  // printf("inode close %d\n",inode->open_cnt);
+  // printf("inode close sector: %d\n",inode->sector);
+  // printf("inode close cnt: %d\n",inode->open_cnt);
 
   /* Ignore null pointer. */
   if (inode == NULL)
