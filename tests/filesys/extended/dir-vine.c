@@ -21,7 +21,9 @@ test_main (void)
   msg ("creating many levels of files and directories...");
   quiet = true;
   CHECK (mkdir ("start"), "mkdir \"start\"");
+  // printf("dir-vine after mkdir start \n");
   CHECK (chdir ("start"), "chdir \"start\"");
+  // printf("dir-vine after chdir start \n");
   for (i = 0; ; i++) 
     {
       char name[3][READDIR_MAX_LEN + 1];
@@ -42,7 +44,7 @@ test_main (void)
           break;
         }
       close (fd);
-      
+      // printf("dir-vine after create file \n");
       /* Create directory. */
       snprintf (dir_name, sizeof dir_name, "dir%d", i);
       if (!mkdir (dir_name)) 
@@ -68,6 +70,7 @@ test_main (void)
 
       /* Descend into directory. */
       CHECK (chdir (dir_name), "chdir \"%s\"", dir_name);
+      // printf("dir-vine after chdir-descend directory \n");
     }
   CHECK (i > 200, "created files and directories only to level %d", i);
   quiet = false;

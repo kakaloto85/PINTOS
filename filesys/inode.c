@@ -658,9 +658,9 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
 }
 bool
 grow_file(struct inode* inode, off_t offset, off_t size){ 
-  // printf("grow_file %d\n",size);
  bool success=false;
  int sectors = bytes_to_sectors(offset+size);
+
  int inode_sectors = bytes_to_sectors(inode_length(inode));
  struct bce* cache;
   if (inode_sectors == sectors){
@@ -801,6 +801,8 @@ grow_file(struct inode* inode, off_t offset, off_t size){
   inode->data.length=offset+size;
   inode->read = offset+size;
   struct bce* inode_disk_cache;
+    //  printf("grow_file %d\n",inode->read );
+
   // printf("here\n");
   return success;
 }

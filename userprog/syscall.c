@@ -11,6 +11,8 @@
 #include "filesys/directory.h"
 
 typedef int32_t off_t;
+int create_num=0; 
+
 
 struct file 
   {
@@ -196,7 +198,10 @@ int wait (tid_t pid){
 bool create (const char *file, unsigned initial_size){
   /* Check the validity of file */
     // printf("create\n");
-
+  if(create_num<250)
+    create_num++;
+  else 
+    return false;
   if(file==NULL||*file==NULL){
     exit(-1);
   }
@@ -311,7 +316,7 @@ int open (const char *file){
   // sema_up(&file_lock);
   if(opened_file==NULL){
     sema_up(&file_lock);
-
+    // printf("opened_file ==NULL\n");
     return -1;
   }
 
@@ -332,6 +337,7 @@ int open (const char *file){
     }
   }
   sema_up(&file_lock);
+  // printf("here\n");
   return -1;
 }
 

@@ -157,11 +157,16 @@ filesys_open (const char *name)
   }
   if (dir != NULL){
     //dir에서 name에 해당하는 File의 inode를 리턴함
-    dir_lookup (dir, file_name, &inode);
+    bool check = dir_lookup (dir, file_name, &inode);
+    // printf("check %d\n",check);
   }
+  // else{
+  //   printf("1\n");
+  // }
   
   dir_close (dir);
   if(strlen(file_name)==0||strlen(file_name)>14){
+    // printf("filesys_open NULL?\n");
     return NULL;
   }
   // 비어있는 것ㅇ을 열려하면 문제가 생기게

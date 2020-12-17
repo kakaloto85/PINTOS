@@ -201,7 +201,7 @@ dir_add (struct dir *dir, const char *name, block_sector_t inode_sector)
   e.inode_sector = inode_sector;
   success = inode_write_at (dir->inode, &e, sizeof e, ofs) == sizeof e;
  done:
-  // printf("dir_add success \n");
+  // printf("dir_add success %d\n",dir->inode->data.length);
   return success;
 }
 
@@ -222,24 +222,33 @@ dir_remove (struct dir *dir, const char *name)
   /* Find directory entry. */
   if (!lookup (dir, name, &e, &ofs))
     goto done;
-  if (!strcmp(e.name,".")||!strcmp(e.name,".."))
-    goto done;  //jy 추가
+  // if (!strcmp(e.name,".")||!strcmp(e.name,".."))
+  //   goto done;  //jy 추가
   /* Open inode. */
   inode = inode_open (e.inode_sector);
   
   if (inode == NULL)
     goto done;
   if (is_dir(inode)) {
-    // printf("is_dir\n");
-    if(thread_current()->dir_now!=NULL){
-      if(get_sector(dir_get_inode(thread_current()->dir_now))==get_sector(inode)){
-        goto done;
-      }
-    }
-    if(check_open(inode))
-      goto done;
+    // printf("is_dir1\n");
+    // if(thread_current()->dir_now!=NULL){
+    //   if(get_sector(dir_get_inode(thread_current()->dir_now))==get_sector(inode)){
+    // //         // printf("is_dir2\n");
+
+    //     goto done;
+    //   }
+    // }
+    // if(check_open(inode)){
+    //       // printf("is_dir3\n");
+
+    //   goto done;
+    // }
+    // check_open(inode);
     char name[NAME_MAX + 1];
-    if(dir_readdir(dir_open(inode),name))
+    struct dir* dir = dir_open(inode);
+    bool filled = dir_readdir(dir,name);
+    dir_close(dir);
+    if (filled)
       goto done;
   }
 
@@ -253,7 +262,10 @@ dir_remove (struct dir *dir, const char *name)
   success = true;
 
  done:
-  inode_close (inode);
+  // if (is_dir(inode))
+  //   dir_close(inode);
+  // else
+    inode_close (inode);
   // printf("here\n");
   return success;
 }
@@ -316,7 +328,11 @@ parse_path (char *path_name, char *file_name,bool create) {
     else{
       // printf("here\n");
       // inode_close(dir_get_inode(thread_current()->dir_now));
-      // inode_open(thread_current()->dir_now)
+      // printf("parse_path %d\n",get_sector(dir_get_inode(thread_current()->dir_now)));
+      if (dir_get_inode(thread_current()->dir_now)->removed){
+        // printf("here? \n");
+        return NULL;
+      }
       dir = dir_reopen(thread_current()->dir_now);
             // printf("parse_path %d\n",inode_get_inumber(dir_get_inode(dir)));
 
@@ -400,7 +416,7 @@ find_dir(char* path_name){
     }
     else{
       // printf("here\n");
-      dir = dir_reopen(thread_current()->dir_now);
+      dir = (thread_current()->dir_now);
       // printf("find_dir %d\n",inode_get_inumber(dir_get_inode(dir)));
     }
     if(!check)
